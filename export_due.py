@@ -60,10 +60,10 @@ def main():
         field_names.setdefault(ntid, []).append(name)
 
     learning, review, new = [], [], []
+    known = {}
     for row in db.execute("""
             select c.id, c.queue, c.due, c.ivl, c.reps, c.lapses, n.mid, n.flds, d.name
-              from cards c join notes n on n.id = c.nid join decks d on d.id = c.did
-             where c.queue in (0,1,2,3)"""):
+              from cards c join notes n on n.id = c.nid join decks d on d.id = c.did"""):
         cid, queue, due, ivl, reps, lapses, mid, flds, deck = row
         f = dict(zip(field_names.get(mid, []), flds.split("\x1f")))
         card = {
@@ -77,6 +77,8 @@ def main():
             "sentence_meaning": plain(f.get("Sentence Meaning")),
             "pitch": f.get("Pitch Accent", ""),
         }
+        if reps > 0 and card["word"]:
+            known[card["word"]] = max(known.get(card["word"], 0), ivl)
         if queue == 1 and due <= now_s:
             learning.append(card)
         elif queue in (2, 3) and due <= today:
@@ -97,6 +99,16 @@ def main():
     }
     with open(os.path.join(DATA, "due.json"), "w", encoding="utf-8") as fh:
         json.dump(out, fh, ensure_ascii=False, indent=1)
+
+    # Every word you have studied, so grammar drills can use your own vocabulary and
+    # the tutor can pitch conversation at it. Bare words only — no meanings, sentences
+    # or audio — which is a word list, not a copy of the deck. This is why the query
+    # above reads every card, suspended and buried included; the due lists below
+    # still pick only the queues they want.
+    with open(os.path.join(DATA, "known.json"), "w", encoding="utf-8") as fh:
+        json.dump({"generated": out["generated"], "count": len(known),
+                   "mature": sum(1 for v in known.values() if v >= 21),
+                   "words": sorted(known)}, fh, ensure_ascii=False, indent=0)
 
     # A fresh batch invalidates any answers still sitting unapplied; importing them
     # after a re-export would replay reviews against a schedule that has moved on.

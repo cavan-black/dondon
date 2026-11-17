@@ -1,0 +1,4 @@
+# For tools/make_deck.py only — not needed by the app.
+anthropic>=2.9
+pydantic>=2
+wordfreq>=3.1

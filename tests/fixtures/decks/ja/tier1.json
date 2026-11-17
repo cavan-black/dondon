@@ -1,0 +1,40 @@
+{
+ "lang": "ja",
+ "tier": 1,
+ "count": 3,
+ "cards": [
+  {
+   "id": "ja-00001",
+   "rank": 1,
+   "word": "人",
+   "reading": "ひと",
+   "meaning": "person",
+   "pos": "noun",
+   "sentence": "あの人は先生です。",
+   "sentence_furigana": "あの 人[ひと]は 先生[せんせい]です。",
+   "sentence_en": "That person is a teacher."
+  },
+  {
+   "id": "ja-00002",
+   "rank": 2,
+   "word": "今日",
+   "reading": "きょう",
+   "meaning": "today",
+   "pos": "noun",
+   "sentence": "今日は暑い。",
+   "sentence_furigana": "今日[きょう]は 暑[あつ]い。",
+   "sentence_en": "It's hot today."
+  },
+  {
+   "id": "ja-00003",
+   "rank": 3,
+   "word": "行く",
+   "reading": "いく",
+   "meaning": "to go",
+   "pos": "noun",
+   "sentence": "駅に行く。",
+   "sentence_furigana": "駅[えき]に 行[い]く。",
+   "sentence_en": "I go to the station."
+  }
+ ]
+}

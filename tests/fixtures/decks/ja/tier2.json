@@ -1,0 +1,29 @@
+{
+ "lang": "ja",
+ "tier": 2,
+ "count": 2,
+ "cards": [
+  {
+   "id": "ja-01501",
+   "rank": 1501,
+   "word": "経済",
+   "reading": "けいざい",
+   "meaning": "economy",
+   "pos": "noun",
+   "sentence": "経済が強い。",
+   "sentence_furigana": "経済[けいざい]が 強[つよ]い。",
+   "sentence_en": "The economy is strong."
+  },
+  {
+   "id": "ja-01502",
+   "rank": 1502,
+   "word": "政府",
+   "reading": "せいふ",
+   "meaning": "government",
+   "pos": "noun",
+   "sentence": "政府の話。",
+   "sentence_furigana": "政府[せいふ]の 話[はなし]。",
+   "sentence_en": "Talk of the government."
+  }
+ ]
+}

@@ -1,268 +1,47 @@
-"""Review today's Anki batch from a phone.
+"""Dondon (どんどん, "steadily onward"): one phone app for the whole daily routine of
+learning a language — Japanese or Spanish.
 
-This app NEVER schedules anything. It shows the cards export_due.py put in data/due.json,
-records which button was pressed and how long the card took, and writes that list back to
-the repo. import_reviews.py then replays those answers through Anki's own scheduler on the
-desktop. Keeping the scheduling on one side of the wire is what makes it safe to review
-here: the worst a bad session can do is record answers, never corrupt intervals.
+  Today     the plan for the day and how far along you are
+  Progress  your level, what the next one needs, your pace, and the statistics
+  Basics    the alphabet: kana for Japanese, sounds and spelling for Spanish
+  Vocab     reviews from the Dondon decks: 1,500-word tiers in frequency order
+  Grammar   Katsuyou-style conjugation and pattern drills on a spaced schedule
+  Read      Wikipedia and stories rewritten at your level; tap any word
+  Build     translate sentences that need the grammar you just drilled; Claude grades
+  Speak     listen, repeat, and get scored by the phone's speech recognition
+  Talk      role-play conversations pitched at your level, with corrections
+  Account   language, deck placement, invites (owner), sign out
 
-GRADING IS BINARY, the way Migaku does it: you either got it or you didn't. Anki's four
-buttons ask you to appraise your own recall on a scale while the answer is still on the
-screen, which is slow and mostly noise. Two buttons is a judgement you can make in under
-a second, which is the whole point of reviewing on a phone.
+The order is the method: words in, rules in, then both out — first into single
+sentences, then into conversation, which is where speaking actually comes from.
 
-What goes down the wire is still Anki's 1-4 ease, so nothing downstream changes: AGAIN
-sends 1, GOT IT sends 3 (Good). Hard and Easy are simply never emitted. If you want the
-full scale for a session, do it on the desktop — the collection is the same one.
-
-There is no audio. The repo is public, Kaishi 1.5k carries no licence, and shipping its
-mp3s to a public URL was a redistribution nobody granted — so the card is text only.
-
-Persistence works the same way the marathon dashboard's does, and for the same reason —
-Streamlit Cloud's filesystem is ephemeral, so anything written locally is gone at the next
-redeploy. Answers are committed to the repo through the GitHub API, which needs a GH_PAT
-secret with repo scope. Without one the app still works; you just have to use the download
-button at the end and drop the file in yourself.
+The owner also gets "Anki": the original purpose of this repo, reviewing their own
+Anki collection from the phone (views/anki.py).
 """
-import base64, json, os, time
-import requests
 import streamlit as st
 
-REPO = "cavan-black/anki-phone"
-HERE = os.path.dirname(os.path.abspath(__file__))
-DUE = os.path.join(HERE, "data", "due.json")
-SAVE_EVERY = 10          # answers between pushes; a crash costs at most this many
+from hub import session, ui
 
-AGAIN, GOOD = 1, 3       # Anki ease values; the only two this app ever records
-RATINGS = [("Again", AGAIN), ("Got it", GOOD)]
-
-st.set_page_config(page_title="Anki", page_icon="🇯🇵", layout="centered",
+st.set_page_config(page_title="Dondon", page_icon="assets/icon.png", layout="centered",
                    initial_sidebar_state="collapsed")
+ui.setup()
+session.sign_in()
 
-STYLE = """
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-  :root {
-    --bg: #0d0f13;
-    --surface: #161a21;
-    --line: #242a35;
-    --fg: #e9ecf2;
-    --muted: #8b93a3;
-    --ok: #2fbf71;
-    --no: #e2554c;
-    --accent: #7aa2f7;
-  }
-
-  #MainMenu, footer, header {visibility: hidden;}
-  .stApp {background: var(--bg);}
-  html, body, [class*="st-"] {font-family: 'Inter', -apple-system, BlinkMacSystemFont,
-                              'Segoe UI', sans-serif;}
-  .block-container {padding-top: 1.4rem; padding-bottom: 1.2rem; max-width: 560px;}
-
-  /* progress: a hairline, not a chunky bar */
-  div[data-testid="stProgress"] > div > div {background: #1d222b; height: 3px;}
-  div[data-testid="stProgress"] > div > div > div {background: var(--accent); height: 3px;}
-
-  .meta {display: flex; justify-content: space-between; align-items: baseline;
-         font-size: 0.72rem; color: var(--muted); letter-spacing: 0.06em;
-         text-transform: uppercase; margin: 0.5rem 0 0.2rem;}
-  .meta .right {text-transform: none; letter-spacing: 0;}
-
-  /* the card itself */
-  .card {background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
-         padding: 2.4rem 1.2rem; margin: 0.6rem 0 1.1rem;
-         box-shadow: 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.22);}
-  .word {font-size: clamp(2.8rem, 15vw, 4.4rem); line-height: 1.45; text-align: center;
-         color: var(--fg); font-weight: 500; letter-spacing: 0.01em;}
-  .word ruby rt {font-size: 0.36em; opacity: 0.7; font-weight: 400;}
-  .reading {font-size: 1.25rem; text-align: center; color: var(--muted);
-            margin-top: 0.5rem; font-weight: 400;}
-  .meaning {font-size: 1.45rem; text-align: center; color: var(--fg); font-weight: 600;
-            margin-top: 0.9rem; line-height: 1.4;}
-  .rule {height: 1px; background: var(--line); margin: 1.4rem 0 1.1rem;}
-  .sent {font-size: 1.22rem; line-height: 2.0; text-align: center; color: var(--fg);
-         opacity: 0.92;}
-  .sent ruby rt {font-size: 0.42em; opacity: 0.65;}
-  .sent-en {font-size: 0.92rem; text-align: center; color: var(--muted);
-            margin-top: 0.5rem; line-height: 1.5;}
-
-  /* buttons: tall, rounded, thumb-sized */
-  .stButton > button {height: 3.5rem; font-size: 1.02rem; font-weight: 600;
-                      border-radius: 14px; border: 1px solid var(--line);
-                      background: #1b202a; color: var(--fg); transition: none;}
-  .stButton > button:hover {border-color: #39414f; color: var(--fg);}
-  .stButton > button:focus {box-shadow: none; color: var(--fg);}
-
-  /* the two graders, left red and right green */
-  div[data-testid="stHorizontalBlock"] div[data-testid="stColumn"]:nth-of-type(1)
-    .stButton > button {background: rgba(226,85,76,0.12); border-color: rgba(226,85,76,0.4);
-                        color: #ff8e86;}
-  div[data-testid="stHorizontalBlock"] div[data-testid="stColumn"]:nth-of-type(2)
-    .stButton > button {background: rgba(47,191,113,0.12); border-color: rgba(47,191,113,0.4);
-                        color: #5fd99a;}
-
-  div[data-testid="stMetricValue"] {font-size: 1.6rem;}
-</style>
-"""
-st.markdown(STYLE, unsafe_allow_html=True)
-
-
-@st.cache_data
-def load_due():
-    if not os.path.exists(DUE):
-        return None
-    with open(DUE, encoding="utf-8") as fh:
-        return json.load(fh)
-
-
-def push_answers(batch_id, answers):
-    """Commit data/reviews.json to the repo. Returns (ok, error)."""
-    try:
-        token = st.secrets.get("GH_PAT")
-    except Exception:
-        token = None          # no secrets.toml at all, e.g. running locally
-    if not token:
-        return False, "no GH_PAT secret"
-    api = f"https://api.github.com/repos/{REPO}/contents/data/reviews.json"
-    headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"}
-    body = json.dumps({"batch_id": batch_id, "answers": answers}, indent=1)
-    try:
-        r = requests.get(api, headers=headers, timeout=15)
-        sha = r.json().get("sha") if r.status_code == 200 else None
-        payload = {"message": f"reviews: {len(answers)} answers ({batch_id})",
-                   "content": base64.b64encode(body.encode()).decode(), "branch": "main"}
-        if sha:
-            payload["sha"] = sha
-        r2 = requests.put(api, headers=headers, json=payload, timeout=20)
-        if r2.status_code in (200, 201):
-            return True, None
-        return False, f"GitHub {r2.status_code}: {r2.text[:150]}"
-    except Exception as exc:
-        return False, str(exc)
-
-
-def gate():
-    """A Community Cloud app on a public repo is reachable by anyone with the URL, and
-    this one carries a token that can write to the repo. So it asks for a PIN first.
-    Set APP_PIN in the app's secrets; with no PIN set the app stays open, which is only
-    sane while the repo is private."""
-    try:
-        pin = st.secrets.get("APP_PIN")
-    except Exception:
-        pin = None
-    if not pin or st.session_state.get("unlocked"):
-        return
-    st.markdown('<div class="meta"><span>locked</span></div>', unsafe_allow_html=True)
-    entered = st.text_input("PIN", type="password", label_visibility="collapsed",
-                            placeholder="PIN")
-    if entered:
-        if entered == pin:
-            st.session_state["unlocked"] = True
-            st.rerun()
-        else:
-            st.error("Nope.")
-    st.stop()
-
-
-gate()
-
-due = load_due()
-if not due or not due.get("cards"):
-    st.markdown('<div class="card"><div class="meaning">Nothing due</div>'
-                '<div class="sent-en">Run <code>python export_due.py</code> on the laptop, '
-                'then push.</div></div>', unsafe_allow_html=True)
-    st.stop()
-
-cards = due["cards"]
-ss = st.session_state
-ss.setdefault("i", 0)
-ss.setdefault("answers", [])
-ss.setdefault("revealed", False)
-ss.setdefault("shown_at", time.time())
-ss.setdefault("saved_upto", 0)
-ss.setdefault("save_err", None)
-
-
-def save(force=False):
-    n = len(ss.answers)
-    if not force and n - ss.saved_upto < SAVE_EVERY:
-        return
-    ok, err = push_answers(due["batch_id"], ss.answers)
-    ss.saved_upto = n if ok else ss.saved_upto
-    ss.save_err = None if ok else err
-
-
-def answer(rating):
-    card = cards[ss.i]
-    ss.answers.append({
-        "card_id": card["card_id"],
-        "rating": rating,
-        "ms": int((time.time() - ss.shown_at) * 1000),
-        "at": int(time.time()),
-    })
-    ss.i += 1
-    ss.revealed = False
-    ss.shown_at = time.time()
-    save()
-
-
-# ---- finished ----
-if ss.i >= len(cards):
-    save(force=True)
-    counts = {}
-    for a in ss.answers:
-        counts[a["rating"]] = counts.get(a["rating"], 0) + 1
-    got = counts.get(GOOD, 0)
-    total = len(ss.answers) or 1
-    st.markdown(f'<div class="card"><div class="word">{round(100 * got / total)}%</div>'
-                f'<div class="reading">{got} of {len(ss.answers)} on the first pass</div>'
-                f'</div>', unsafe_allow_html=True)
-    cols = st.columns(2)
-    for col, (label, val) in zip(cols, RATINGS):
-        col.metric(label, counts.get(val, 0))
-    if ss.saved_upto == len(ss.answers):
-        st.success("Saved. On the laptop: `git pull`, then `python import_reviews.py`.")
-    else:
-        st.warning(f"Not saved automatically ({ss.save_err}). Download this and drop it "
-                   f"into `data/reviews.json` on the laptop instead.")
-    st.download_button("Download reviews.json",
-                       json.dumps({"batch_id": due["batch_id"], "answers": ss.answers}, indent=1),
-                       file_name="reviews.json", mime="application/json",
-                       use_container_width=True)
-    st.stop()
-
-# ---- one card ----
-card = cards[ss.i]
-done, total = ss.i, len(cards)
-st.progress(done / total)
-saved_note = "" if ss.saved_upto >= done else f"{done - ss.saved_upto} unsaved"
-st.markdown(f'<div class="meta"><span>{done} / {total}</span>'
-            f'<span class="right">{saved_note}</span></div>', unsafe_allow_html=True)
-
-# The front is the bare word. Furigana belongs on the back — putting it here would hand
-# over the reading, which is most of what the card is asking for.
-if not ss.revealed:
-    st.markdown(f'<div class="card"><div class="word">{card["word"]}</div></div>',
-                unsafe_allow_html=True)
-    if st.button("Show", use_container_width=True, type="primary"):
-        ss.revealed = True
-        st.rerun()
-else:
-    back = [f'<div class="word">{card["word_furigana"] or card["word"]}</div>']
-    if card["reading"]:
-        back.append(f'<div class="reading">{card["reading"]}</div>')
-    back.append(f'<div class="meaning">{card["meaning"]}</div>')
-    if card["sentence"]:
-        back.append('<div class="rule"></div>')
-        back.append(f'<div class="sent">{card["sentence_furigana"] or card["sentence"]}</div>')
-        back.append(f'<div class="sent-en">{card["sentence_meaning"]}</div>')
-    st.markdown(f'<div class="card">{"".join(back)}</div>', unsafe_allow_html=True)
-
-    for col, (label, val) in zip(st.columns(2), RATINGS):
-        if col.button(label, use_container_width=True, key=f"r{val}_{ss.i}"):
-            answer(val)
-            st.rerun()
-
-if ss.save_err:
-    st.caption(f"⚠ last save failed: {ss.save_err}")
+page = st.Page
+you = []
+if session.is_owner() and session.lang() == "ja":
+    you.append(page("views/anki.py", title="Anki", icon=":material/inbox:", url_path="anki"))
+you.append(page("views/account.py", title="Account", icon=":material/person:", url_path="account"))
+pages = {
+    "": [page("views/today.py", title="Today", icon=":material/home:", default=True),
+         page("views/progress.py", title="Progress", icon=":material/trending_up:", url_path="progress")],
+    "Learn": [page("views/basics.py", title="Basics", icon=":material/abc:", url_path="basics"),
+              page("views/vocab.py", title="Vocab", icon=":material/style:", url_path="vocab"),
+              page("views/grammar.py", title="Grammar", icon=":material/repeat:", url_path="grammar")],
+    "Use": [page("views/read.py", title="Read", icon=":material/menu_book:", url_path="read"),
+            page("views/build.py", title="Build", icon=":material/extension:", url_path="build"),
+            page("views/speak.py", title="Speak", icon=":material/mic:", url_path="speak"),
+            page("views/talk.py", title="Talk", icon=":material/forum:", url_path="talk")],
+    "You": you,
+}
+st.navigation(pages, position="top").run()
