@@ -44,18 +44,19 @@ STYLE = """
   }
 
   #MainMenu, footer {visibility: hidden;}
-  header[data-testid="stHeader"] {background: rgba(11,12,17,0.82);
-                                  backdrop-filter: blur(14px);}
+  /* Streamlit's header is replaced by Dondon's own bar (topbar()). */
+  header[data-testid="stHeader"] {display: none;}
   .stApp {background: var(--bg);}
   /* Set on the root and inherited — a blanket [class*="st-"] rule would also override
      the icon font and print icon names ("_arrow_right") instead of the icons. */
   html, body, .stApp {font-family: 'Inter', -apple-system, BlinkMacSystemFont,
                               'Segoe UI', 'Zen Kaku Gothic New', 'Hiragino Sans',
                               'Noto Sans JP', sans-serif;}
-  .block-container {padding-top: 3.4rem; padding-bottom: 5rem; max-width: 560px;}
+  .block-container {padding-top: 0.6rem; padding-bottom: 5rem; max-width: 560px;}
 
-  div[data-testid="stProgress"] > div > div {background: var(--track); height: 4px;}
-  div[data-testid="stProgress"] > div > div > div {background: var(--accent); height: 4px;}
+  div[data-testid="stProgressBarTrack"] {background: var(--track); height: 4px;}
+  div[data-testid="stProgressBarTrack"] > div {background: linear-gradient(90deg,
+      var(--accent), var(--accent-2)); height: 4px; transition: width 0.4s var(--ease);}
 
   .meta {display: flex; justify-content: space-between; align-items: baseline;
          font-size: 0.72rem; color: var(--muted); letter-spacing: 0.08em;
@@ -244,7 +245,7 @@ STYLE = """
   .axis span.now {color: var(--fg); font-weight: 700;}
 
   .row {display: flex; align-items: center; gap: 0.7rem; margin-top: 0.7rem;}
-  .row .k {flex: none; width: 4.4rem; font-size: 0.84rem; color: var(--fg);}
+  .row .k {flex: none; width: 5.4rem; font-size: 0.84rem; color: var(--fg);}
   .row .bar {flex: 1;}
   .row .n {flex: none; width: 8.2rem; text-align: right; font-size: 0.76rem;
            color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap;}
@@ -403,6 +404,81 @@ STYLE = """
   .week .streak .mi {color: var(--spark); font-size: 1.15rem;}
   .word .mi {font-size: 1em; color: var(--accent);}
 
+  /* ---- the top bar: home, Today, Progress, Practice, and you ---- */
+  .st-key-topbar {position: sticky; top: 0; z-index: 50; margin: 0 -1rem 0.4rem;
+                  width: calc(100% + 2rem) !important; box-sizing: border-box;
+                  padding: 0.55rem 1rem; background: rgba(11,12,17,0.82);
+                  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+                  border-bottom: 1px solid rgba(37,41,56,0.7);
+                  animation: none !important;}
+  .st-key-topbar, .st-key-topbar > div {flex-wrap: nowrap !important; gap: 0.25rem !important;}
+  .st-key-topbar a[data-testid="stPageLink-NavLink"] {padding: 0.3rem 0.55rem;
+      border-radius: 10px; min-height: 2.3rem;}
+  .st-key-topbar a[data-testid="stPageLink-NavLink"] p {font-weight: 600;
+      font-size: 0.9rem; color: var(--muted);}
+  .st-key-topbar a[data-testid="stPageLink-NavLink"]:hover p {color: var(--fg);}
+  .st-key-topbar .here a[data-testid="stPageLink-NavLink"],
+  [class*="st-key-nav_here"] a[data-testid="stPageLink-NavLink"]
+      {background: var(--accent-soft);}
+  [class*="st-key-nav_here"] a[data-testid="stPageLink-NavLink"] p,
+  [class*="st-key-nav_here"] a[data-testid="stPageLink-NavLink"] span
+      {color: var(--fg) !important;}
+  .st-key-topbar .stPopover button {height: 2.3rem; border-radius: 10px;
+      border: 1px solid transparent; background: transparent; font-weight: 600;
+      font-size: 0.9rem; color: var(--muted); padding: 0 0.55rem;}
+  .st-key-topbar .stPopover button:hover {color: var(--fg); background: var(--raised);}
+  .st-key-topbar > :has(.st-key-me) {margin-left: auto !important;}
+  .st-key-go_home .brand {justify-content: flex-start; gap: 0.45rem;}
+  .st-key-go_home .brand .mark {width: 2.1rem; height: 2.1rem; border-radius: 0.6rem;}
+  .st-key-go_home .brand .wm {font-size: 1.25rem;}
+  .st-key-go_home .brand .jp {display: none;}
+  .st-key-go_home .brand .mark i {animation: none;}
+  .st-key-go_home:hover .brand .mark i:nth-child(2) {animation: beat 0.5s var(--ease);}
+  /* the profile button: your initial in a ring */
+  .st-key-me .stPopover button {width: 2.3rem; height: 2.3rem; min-height: 0;
+      padding: 0; border-radius: 50%; color: #0b1020; font-family: var(--display);
+      font-weight: 800; font-size: 1rem;
+      background: linear-gradient(135deg, var(--accent), var(--spark));}
+  .st-key-me .stPopover button:hover {color: #0b1020; filter: brightness(1.08);
+      background: linear-gradient(135deg, var(--accent), var(--spark));}
+  .st-key-me .stPopover button [data-testid="stIconMaterial"] {display: none;}
+  .who {padding: 0.2rem 0.1rem 0.6rem; border-bottom: 1px solid var(--line);
+        margin-bottom: 0.4rem;}
+  .who .n {font-family: var(--display); font-weight: 800; font-size: 1.1rem;
+           color: var(--fg);}
+  .who .e {font-size: 0.8rem; color: var(--muted); margin-top: 0.1rem;
+           word-break: break-all;}
+  .who .lv {font-size: 0.8rem; color: var(--fg); margin-top: 0.45rem;}
+  .menu-h {font-size: 0.66rem; color: var(--muted); text-transform: uppercase;
+           letter-spacing: 0.08em; font-weight: 600; margin: 0.5rem 0 0.1rem 0.2rem;}
+  @media (max-width: 520px) {
+    .st-key-go_home .brand .wm {display: none;}
+    /* phones: Today and Progress as icons, so the bar fits on one line */
+    [class*="st-key-nav_"]:not([class*="practice"]) a[data-testid="stPageLink-NavLink"] p
+        {display: none;}
+    [class*="st-key-nav_"]:not([class*="practice"]) a[data-testid="stPageLink-NavLink"]
+        {padding: 0.3rem 0.6rem;}
+  }
+
+  /* ---- a right answer: the card flies off, the next slides in ---- */
+  .swap {position: relative;}
+  .swap > .ghost {position: absolute; left: 0; right: 0; top: 0; margin: 0; z-index: 2;
+                  pointer-events: none; overflow: hidden;
+                  border-color: rgba(62,207,142,0.6);
+                  box-shadow: 0 0 0 1px rgba(62,207,142,0.25),
+                              0 12px 34px rgba(62,207,142,0.2);
+                  animation: swoosh-out 0.5s var(--ease) forwards;}
+  .swap > .enter {animation: swoosh-in 0.5s var(--ease) 0.12s both;}
+  @keyframes swoosh-out {
+    0% {opacity: 1; transform: none; filter: none;}
+    30% {opacity: 1; transform: scale(1.025);}
+    100% {opacity: 0; transform: translateX(-70%) rotate(-5deg) scale(0.88);
+          filter: blur(3px);}}
+  @keyframes swoosh-in {from {opacity: 0; transform: translateX(46px) scale(0.98);}}
+  .verdict.ok .mi {display: inline-block; animation: tick 0.55s var(--ease) both;}
+  @keyframes tick {0% {transform: scale(0) rotate(-30deg);}
+                   60% {transform: scale(1.35) rotate(8deg);} 100% {transform: none;}}
+
   /* ---- controls ---- */
   .stButton > button, .stFormSubmitButton > button {
       height: 3.3rem; font-size: 1.0rem; font-weight: 600; border-radius: 14px;
@@ -451,8 +527,25 @@ def icon(name, fill=False):
 
 
 def card(inner, tight=False):
-    st.markdown(f'<div class="card{" tight" if tight else ""}">{inner}</div>',
-                unsafe_allow_html=True)
+    ss = st.session_state
+    ghost = ss.pop("_swoosh", None)
+    ss["_last_card"] = (inner, tight)
+    cls = f'card{" tight" if tight else ""}'
+    if ghost:
+        g_inner, g_tight = ghost
+        st.markdown(f'<div class="swap"><div class="card ghost{" tight" if g_tight else ""}"'
+                    f' aria-hidden="true">{g_inner}</div><div class="{cls} enter">{inner}'
+                    f'</div></div>', unsafe_allow_html=True)
+    else:
+        st.markdown(f'<div class="{cls}">{inner}</div>', unsafe_allow_html=True)
+
+
+def swoosh():
+    """Call on a right answer, before the rerun: the card on screen flies off and
+    the next one slides in. Nothing happens on a wrong one."""
+    last = st.session_state.get("_last_card")
+    if last:
+        st.session_state["_swoosh"] = last
 
 
 def ruby(written, kana):
@@ -508,6 +601,68 @@ def panel(inner):
 
 
 _icon = icon
+
+
+# --------------------------------------------------------------------- top bar
+
+PRACTICE = (("Learn", ("basics", "vocab", "grammar", "anki")),
+            ("Use", ("read", "build", "speak", "talk")))
+
+
+def topbar(pages, current):
+    """Dondon's own bar, on every page: the mark (back to Today from anywhere),
+    Today, Progress, a Practice menu with every exercise, and the profile menu at
+    the top right."""
+    from . import session
+    here = next((k for k, p in pages.items() if p.url_path == current.url_path), "today")
+    with st.container(key="topbar", horizontal=True, vertical_alignment="center",
+                      gap="small"):
+        with st.container(key="go_home", width="content"):
+            st.markdown(brand(), unsafe_allow_html=True)
+            st.page_link(pages["today"], label="Home")
+        for k in ("today", "progress"):
+            with st.container(key=f"nav_{'here_' if k == here else ''}{k}",
+                              width="content"):
+                st.page_link(pages[k], label=pages[k].title, icon=pages[k].icon)
+        practising = any(here in keys for _, keys in PRACTICE)
+        with st.container(key=f"nav_{'here_' if practising else ''}practice",
+                          width="content"):
+            with st.popover("Practice", icon=":material/apps:"):
+                for head, keys in PRACTICE:
+                    st.markdown(f'<div class="menu-h">{head}</div>', unsafe_allow_html=True)
+                    for k in keys:
+                        if k in pages:
+                            with st.container(key=f"nav_{'here_' if k == here else ''}m_{k}"):
+                                st.page_link(pages[k], label=pages[k].title,
+                                             icon=pages[k].icon)
+        with st.container(key="me", width="content"):
+            name = st.session_state.get("name") or "You"
+            initial = (name if name != "Owner" else session.email())[:1].upper()
+            with st.popover(initial):
+                profile_menu(pages)
+
+
+def profile_menu(pages):
+    from . import langs, session, stats
+    ss = st.session_state
+    name = ss.get("name") or ""
+    L = langs.get(session.lang())
+    T = L.track
+    s = stats.standing(session.words_estimate(),
+                       T.current_stage(session.progress()) - 1, len(T.stages))
+    st.markdown(f'<div class="who"><div class="n">{esc(name if name != "Owner" else "You")}'
+                f'</div><div class="e">{esc(session.email())}</div>'
+                f'<div class="lv">{esc(L.name)} · level {s["level"].n}, '
+                f'{esc(s["level"].name)}</div></div>', unsafe_allow_html=True)
+    for k in ("account", "level", "progress"):
+        st.page_link(pages[k], label=pages[k].title, icon=pages[k].icon)
+    try:
+        google = "auth" in st.secrets and st.user.is_logged_in
+    except Exception:
+        google = False
+    if google and st.button("Sign out", icon=":material/logout:",
+                            use_container_width=True, key="me_signout"):
+        st.logout()
 
 
 def task(key, icon, name, sub, state, page, frac=None, done=False, nxt=False):

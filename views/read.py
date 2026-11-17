@@ -216,7 +216,7 @@ if tapped:
         elif cid:
             if c2.button("＋ vocab", key=f"add_{cid}"):
                 srs.introduce(email, L.code, cid, day)
-                st.toast(f"{head} added — it'll come up in Vocab today.")
+                st.toast(f"{head} added — it'll come up in Vocabulary today.")
                 st.rerun()
 
 # ---- did you get it?

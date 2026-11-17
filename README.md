@@ -11,20 +11,48 @@ your Google account across phone, tablet and computer.
 | **Today** | Language switch, today's ring, your level, the week, and the day's plan. Tap a step to do it |
 | **Progress** | Your level and what the next one needs, the date you'll reach it at your pace, and the statistics |
 | **Basics** | The alphabet: hiragana and katakana, or Spanish sounds, spelling and stress. Skippable |
-| **Vocab** | Reviews from Dondon's own decks: 1,500-word tiers in frequency order, scheduled with FSRS |
+| **Vocabulary** | Reviews from Dondon's own decks: 1,500-word tiers in frequency order, scheduled with FSRS |
 | **Grammar** | Katsuyou-style drills: a word, a form (and for Spanish a person), type it. Staged, on a spaced schedule |
 | **Read** | Wikipedia articles and short stories rewritten at your level. Tap any word for its meaning |
 | **Build** | Translate sentences that need the grammar you just drilled; Claude grades them and shows the natural version |
 | **Speak** | Listen to a sentence, say it back, and see how much the phone's speech recognition understood |
 | **Talk** | Role-play conversations pitched at your level, with corrections and a debrief. Answer by voice with the microphone |
-| **Account** | Starting tier, new cards per day, invites (owner), sign out |
-| **Anki** | Owner only: review your own Anki collection from the phone (the original purpose of this repo) |
+| **Find my level** | The placement test: kana, words and grammar, so you start in the right place |
+| **Profile & settings** | Starting tier, new cards per day, invites (owner), sign out |
+| **My vocabulary** | Owner only: review your own Anki collection from the phone (the original purpose of this repo) |
 
 The order is the method. Words come in through the decks and rules through the
 drills. Reading shows them in real use. You then produce both, first in single
 sentences, then out loud, then in conversation, because producing the language is
 what turns knowing it into speaking it. A little of each every day beats a lot of
 one.
+
+## Getting around
+
+Dondon draws its own bar across the top of every page: the mark (back to Today from
+anywhere), Today, Progress, a Practice menu with every exercise, and your profile at
+the top right: who's signed in, your level, Profile & settings, Find my level, and
+sign out. On a phone Today and Progress shrink to icons so it fits on one line.
+
+## Finding your level
+
+New learners are offered a placement test before anything else. It's one sitting
+in up to three parts, each stopping at your ceiling:
+
+- **Kana / Sounds:** a dozen items from across Basics. 90% marks Basics done. For
+  Japanese, under half ends the test there, since the rest needs kana.
+- **Words:** the decks in bands of 500, most common first: five words a band, pick
+  the meaning or "I don't know". Scores are corrected for guessing, and it stops
+  after two bands in a row come out mostly unknown.
+- **Grammar:** the grammar track stage by stage, four to six drills each. A stage
+  passes at 75%; the first one that doesn't ends the test.
+
+Answers aren't marked as you go. At the end it shows your level and what changed:
+Basics skipped, passed grammar stages marked learned (they come back for a check in
+a week, so a lucky guess gets caught), and new vocabulary starting at the first band
+of 500 that isn't mostly known, even part-way into a tier. The words it found you
+know count toward your level until the cards catch up. A retake only ever moves you
+forward. It can be retaken from the profile menu or Progress.
 
 ## The look
 
@@ -37,7 +65,8 @@ in `hub/ui.py`; the mark is `assets/mark.svg`. Icons are Material Symbols Rounde
 the set Streamlit's own widgets use; there are no emoji in the interface.
 
 Things animate once as they arrive (panels rise, bars and rings fill to their
-value) and then hold still. With "reduce motion" switched on in the phone's
+value) and then hold still. A right answer swooshes: the card lights green and flies
+off as the next slides in. With "reduce motion" switched on in the phone's
 settings, nothing moves.
 
 ## Progress

@@ -21,7 +21,8 @@ What it changes, all of it only ever upwards (a retake never takes anything away
     page: due again in a week, so the schedule checks the placement rather than
     trusting it. They're flagged "placed" so the forecast doesn't count them as
     pace.
-  - New vocab starts at the first tier that isn't mostly known.
+  - New vocab starts at the first band of 500 that isn't mostly known, even part
+    way into a tier.
   - progress["placement"] remembers the estimate of words known that the decks
     don't record (see stats.placement_words), so the level holds from day one.
 
@@ -101,16 +102,27 @@ def vocab_done(scores):
     return len(scores) >= 2 and all(s < STOP_BAND for s in scores[-2:])
 
 
-def start_tier(tiers, band_scores):
-    """The first tier with a band that isn't mostly known. `band_scores` is
-    [(tier, known)] for the bands tested; untested bands count as unknown."""
+def start_point(tier_sizes, band_scores):
+    """Where new cards should start: (tier, index of the first card). Bands are
+    walked in rank order and every band mostly known from the top is passed over;
+    the first that isn't, or the first untested one, is where new cards begin.
+    `tier_sizes` is {tier: cards} in tier order; `band_scores` is [(tier, known)]
+    for the bands tested, in order."""
     tested = {}
     for tier, known in band_scores:
         tested.setdefault(tier, []).append(known)
-    for t in tiers:
-        if t not in tested or min(tested[t]) < KNOWN_BAND:
-            return t
-    return tiers[-1]
+    last = None
+    for t, size in tier_sizes.items():
+        lead = 0
+        for known in tested.get(t, []):
+            if known < KNOWN_BAND:
+                break
+            lead += 1
+        skip = min(lead * BAND, size)
+        if skip < size:
+            return t, skip
+        last = (t, skip)
+    return last
 
 
 # --------------------------------------------------------------------- grammar
@@ -134,7 +146,7 @@ def stage_passed(marks):
 
 # ----------------------------------------------------------------------- apply
 
-def apply(code, track, progress, lang_settings, result, today, card_rows=(), tiers=()):
+def apply(code, track, progress, lang_settings, result, today, card_rows=(), tier_sizes=None):
     """Fold a finished test into the learner's state. `result` holds "script" (a
     score or None), "bands" ([(tier, size, known)]) and "stages" (passed stage
     numbers). Returns the placement record it saved."""
@@ -156,21 +168,31 @@ def apply(code, track, progress, lang_settings, result, today, card_rows=(), tie
               "stages": sorted(result.get("stages", ())), "words_skipped": 0,
               "words_other": 0, "start_tier": None}
     bs = result.get("bands", [])
-    if tiers and bs:
-        t = start_tier(list(tiers), [(tier, known) for tier, _, known in bs])
-        if t > lang_settings.get("start_tier", tiers[0]):
-            lang_settings["start_tier"] = t
-        t = lang_settings.get("start_tier", tiers[0])
+    if tier_sizes and bs:
+        tiers = list(tier_sizes)
+        t, i = start_point(tier_sizes, [(tier, known) for tier, _, known in bs])
+        here = (lang_settings.get("start_tier", tiers[0]), lang_settings.get("start_index", 0))
+        if (t, i) > here:
+            lang_settings["start_tier"], lang_settings["start_index"] = t, i
+        t, i = lang_settings.get("start_tier", tiers[0]), lang_settings.get("start_index", 0)
         started = {}
         for r in card_rows:
             if r["reps"] > 0:
                 started[r["tier"]] = started.get(r["tier"], 0) + 1
-        below = sum(round(size * known) for tier, size, known in bs if tier < t)
-        above = sum(round(size * known) for tier, size, known in bs if tier >= t)
+        # Bands before the start point won't come up as new cards; the rest will.
+        below = above = 0
+        pos = {}
+        for tier, size, known in bs:
+            at = pos.get(tier, 0)
+            pos[tier] = at + size
+            if tier < t or (tier == t and at < i):
+                below += round(size * known)
+            else:
+                above += round(size * known)
         # Words already reviewed here are counted by the cards; don't count them twice.
-        placed["words_skipped"] = max(below - sum(n for k, n in started.items() if k < t), 0)
-        placed["words_other"] = max(above - sum(n for k, n in started.items() if k >= t), 0)
-        placed["start_tier"] = t
+        placed["words_skipped"] = max(below - sum(n for k, n in started.items() if k <= t), 0)
+        placed["words_other"] = max(above - sum(n for k, n in started.items() if k > t), 0)
+        placed["start_tier"], placed["start_index"] = t, i
     progress["placement"] = placed
     return placed
 

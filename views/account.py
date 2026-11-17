@@ -25,6 +25,8 @@ if ts:
                              "settles.")
     if (start, per_day) != (srs.start_tier(ls, L.code),
                             ls.get("new_per_day", srs.DEFAULT_NEW_PER_DAY)):
+        if start != srs.start_tier(ls, L.code):
+            ls.pop("start_index", None)                 # a new tier starts at its top
         ls["start_tier"], ls["new_per_day"] = start, per_day
         session.save_settings()
         st.session_state.pop(f"vq_{L.code}", None)     # rebuild today's queue

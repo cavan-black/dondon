@@ -19,7 +19,7 @@ import datetime, json, math
 from dataclasses import dataclass
 
 ACTIVITIES = ("vocab", "grammar", "read", "build", "speak", "talk")
-LABELS = {"vocab": "Vocab", "grammar": "Grammar", "read": "Read", "build": "Build",
+LABELS = {"vocab": "Vocabulary", "grammar": "Grammar", "read": "Read", "build": "Build",
           "speak": "Speak", "talk": "Talk"}
 # A day's target for each kind of practice. Vocab has none: its target is whatever
 # the scheduler says is due.
@@ -130,6 +130,8 @@ def placement_words(placement, card_rows):
     t = placement.get("start_tier") or 0
     started = sum(1 for r in card_rows
                   if r["reps"] > 0 and r.get("tier", 0) >= t and _date(r["introduced"]) >= since)
+    # (A started card in the start tier may sit above or below the start point;
+    # either way it is counted by the cards now, so it comes off the estimate.)
     return placement.get("words_skipped", 0) + max(placement.get("words_other", 0) - started, 0)
 
 

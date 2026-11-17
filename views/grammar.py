@@ -209,6 +209,7 @@ if fb is None:
         if ok:
             mark(True)
             ss.g_flash = expected[0]
+            ui.swoosh()
             advance()
         else:
             miss(typed.strip(), expected, near)
@@ -238,6 +239,7 @@ else:
             ss.g_results[skill.key][-1] = True
             ss.g_items.pop()
         ss.g_flash = fb["typed"]
+        ui.swoosh()
         advance()
         st.rerun()
     if c2.button("Next", type="primary", use_container_width=True):

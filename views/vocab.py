@@ -73,6 +73,8 @@ st.markdown(f'<div class="meta"><span>{i} / {len(q)}</span><span class="right">'
 
 
 def answer(rating):
+    if rating != srs.AGAIN:
+        ui.swoosh()
     ms = int((time.time() - ss[f"{key}_shown"]) * 1000)
     due = srs.answer(email, L.code, item["id"], rating, ms, today())
     session.log("vocab")

@@ -90,13 +90,23 @@ def start_tier(lang_settings, lang):
     return t if t in ts else (ts[0] if ts else 1)
 
 
+def fresh_cards(lang_settings, lang, tier):
+    """A tier's cards that new cards may come from: all of them, except in the
+    starting tier, where the placement test may have found the first few hundred
+    known already (start_index) — those are skipped, not deleted."""
+    cards = deck(lang, tier)["cards"]
+    if tier == start_tier(lang_settings, lang):
+        return cards[lang_settings.get("start_index", 0):]
+    return cards
+
+
 def current_tier(email, lang, lang_settings):
     """The first tier, from the starting one up, that still has unintroduced cards."""
     seen = rows(email, lang)
     for t in tiers(lang):
         if t < start_tier(lang_settings, lang):
             continue
-        if any(c["id"] not in seen for c in deck(lang, t)["cards"]):
+        if any(c["id"] not in seen for c in fresh_cards(lang_settings, lang, t)):
             return t
     return None                                    # every card introduced
 
@@ -134,7 +144,7 @@ def queue(email, lang, lang_settings, new_today):
     room = max(limit - new_today, 0)
     t = current_tier(email, lang, lang_settings)
     while room and t is not None:
-        for c in deck(lang, t)["cards"]:
+        for c in fresh_cards(lang_settings, lang, t):
             if room == 0:
                 break
             if c["id"] not in seen and not any(q["id"] == c["id"] for q in out):

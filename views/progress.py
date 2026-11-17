@@ -97,7 +97,7 @@ if ahead:
             left.append(f'{t["words_left"]:,} more words')
         if t["skills_left"]:
             left.append(f'{t["skills_left"]} more grammar skills')
-        last = (f' {"Grammar" if t["slower"] == "grammar" else "Vocab"} arrives last, '
+        last = (f' {"Grammar" if t["slower"] == "grammar" else "Vocabulary"} arrives last, '
                 f'so that is the half to speed up.' if t["slower"] else "")
         head = (f'<div class="eta"><span class="when">{t["date"]:%d %b %Y}</span>'
                 f'<span class="in">in {stats.span(t["days"])}</span></div>'
@@ -152,6 +152,12 @@ for x in stats.LEVELS:
               f'<div class="can">{ui.esc(x.can)}</div>'
               f'<div class="needs">{needs}</div></div></div>')
 ui.panel(f'<div class="h">The path</div><div class="path">{steps}</div>')
+placed = progress.get("placement")
+ui.task("placement", "my_location",
+        "Find your level" if not placed or placed.get("skipped") else "Retake the placement test",
+        "Script, words and grammar, about 5 to 15 minutes" if not placed else
+        f"Last taken {placed['date']}. It only ever moves you forward" if not placed.get("skipped")
+        else "You skipped it. Take it any time", "", "views/placement.py")
 
 # ----------------------------------------------------------------- the numbers
 ui.section("at a glance")
@@ -218,7 +224,7 @@ ui.panel(f'<div class="h">Coming up</div><div class="note">'
                  "cards and grammar skills.")
          + f'</div><div class="cols">{cols}</div>'
          f'<div class="axis">{axis}</div><div class="legend">'
-         f'<span><b style="background:var(--viz-1)"></b>Vocab cards</span>'
+         f'<span><b style="background:var(--viz-1)"></b>Vocabulary cards</span>'
          f'<span><b style="background:var(--viz-2)"></b>Grammar skills</span></div>')
 
 # ---------------------------------------------------------------------- vocab

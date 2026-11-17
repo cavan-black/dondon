@@ -64,6 +64,8 @@ def save(force=False):
 
 
 def answer(rating):
+    if rating == GOOD:
+        ui.swoosh()
     card = cards[ss.v_i]
     ss.v_answers.append({
         "card_id": card["card_id"],

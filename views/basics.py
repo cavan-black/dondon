@@ -235,6 +235,7 @@ def answered(answer, shown):
     ok, near, expected, note = B.check(L.code, d, answer)
     if ok and not note:
         mark(True)
+        ui.swoosh()
         advance(f"{item.text} · {item.answers[0]}" if L.code == "ja" else item.text)
         return
     mark(ok)

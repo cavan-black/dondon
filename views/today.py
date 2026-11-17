@@ -68,7 +68,7 @@ if srs.tiers(L.code):
     else:
         ts_ = srs.tier_stats(email, L.code, t)
         sub = f"Tier {t} · {ts_['introduced']:,} of {ts_['total']:,} words started"
-    plan.append(("vocab", "style", "Vocab", sub,
+    plan.append(("vocab", "style", "Vocabulary", sub,
                  f"{waiting} left" if waiting else f"{v} done", "views/vocab.py",
                  v / (v + waiting) if v + waiting else 0, waiting == 0 and v > 0))
 
@@ -77,7 +77,7 @@ if L.code == "ja" and session.is_owner():
     batch = len(json.load(open(due_path, encoding="utf-8")).get("cards", [])) \
         if os.path.exists(due_path) else 0
     if batch:
-        plan.append(("anki", "inbox", "Anki", "Your own collection's batch",
+        plan.append(("anki", "inbox", "My vocabulary", "Your own deck's batch",
                      f"{batch} cards", "views/anki.py", None, False))
 
 add("grammar", "repeat", "Grammar",
@@ -134,23 +134,24 @@ ui.panel(
     f'{ui.bar(s["frac"])}<div class="under">{under}</div></div></div>'
     f'<div class="week">{week}</div>')
 
-if upcoming:
+if not progress.get("placement"):
+    # New here: find the right starting point before anything else.
+    if st.button("Find your level · about 5 minutes", type="primary",
+                 use_container_width=True, icon=":material/my_location:"):
+        st.switch_page("views/placement.py")
+elif upcoming:
     if st.button(f"{'Continue' if done_n or any(log.values()) else 'Start'} · "
                  f"{upcoming[2]}", type="primary", use_container_width=True):
         st.switch_page(upcoming[5])
 else:
-    st.markdown(f'<div class="verdict ok">{ui.icon("check_circle")} Everything done for today</div>',
-                unsafe_allow_html=True)
+    st.markdown(f'<div class="verdict ok">{ui.icon("check_circle")} Everything done for '
+                f'today</div>', unsafe_allow_html=True)
 
 # ------------------------------------------------------------------- the plan
 ui.section("today's plan", f"{done_n} of {len(counted)} done")
 for key, icon, name, sub, state, page, frac, done in plan:
     ui.task(key, icon, name, sub, state, page, frac, done,
             nxt=upcoming is not None and key == upcoming[0])
-if not tutor.available():
-    st.caption("Build, Talk and new reading passages switch on once the app has an "
-               "ANTHROPIC_API_KEY secret.")
-
 ui.task("progress", "trending_up", "Progress", "Your path, pace and statistics",
         "", "views/progress.py")
 
@@ -159,7 +160,7 @@ with st.expander("How this gets you speaking"):
 **Basics** is the alphabet — hiragana and katakana, or Spanish sounds and
 spelling. Skip it if you have it already.
 
-**Vocab** brings the words in: 1,500-word tiers, most common words first. Finish
+**Vocabulary** brings the words in: 1,500-word tiers, most common words first. Finish
 starting one tier and the next opens.
 
 **Grammar** turns the rules into reflexes. You get a word and a form and you type it
