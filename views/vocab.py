@@ -12,7 +12,7 @@ import time
 
 import streamlit as st
 
-from hub import langs, session, srs, ui
+from hub import audio, langs, session, srs, ui
 from hub.store import today
 
 ss = st.session_state
@@ -109,12 +109,15 @@ else:
                  f'<div class="sent-en">{ui.esc(c.get("sentence_en", ""))}</div>']
     ui.card("".join(back))
 
+    voice = audio.find(L.code, c["word"])
     s1, s2 = st.columns(2)
     with s1:
-        ui.speak(c.get("reading") or c["word"], L.tts, "word")
+        ui.speak(c.get("reading") or c["word"], L.tts, "word", voice=voice)
     if c.get("sentence"):
         with s2:
             ui.speak(c["sentence"], L.tts, "sentence")
+    if voice:
+        st.markdown(audio.credit(voice, c["word"]), unsafe_allow_html=True)
 
     with st.container(key="graders"):
         a, b = st.columns(2)

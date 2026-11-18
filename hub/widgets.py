@@ -58,6 +58,8 @@ _READER_CSS = """
 .rd .pop .r {color: var(--muted); font-size: 1rem; margin-left: 0.5rem;}
 .rd .pop .d {color: var(--muted); font-size: 0.85rem; margin-top: 0.1rem;}
 .rd .pop .g {font-size: 1.1rem; margin-top: 0.35rem;}
+.rd .pop .cr {font-size: 0.72rem; color: var(--muted); margin-top: 0.35rem;}
+.rd .pop .cr a {color: var(--muted);}
 .rd .pop .row {display: flex; gap: 0.5rem; margin-top: 0.6rem;}
 """ % _COLORS
 
@@ -96,6 +98,15 @@ export default function (component) {
   root.className = 'rd ' + data.lang.slice(0, 2);
   const ja = data.lang.startsWith('ja');
   let furi = !!data.furigana;
+  // A native speaker's recording when the word has one (exactly this form), else
+  // the device's voice; a recording that fails to load falls back too.
+  function sayWord(t) {
+    const fallback = () => say(t.r || t.t, data.lang, 0.8);
+    if (!t.a) return fallback();
+    const a = new Audio(t.a.u);
+    a.onerror = fallback;
+    a.play().catch(fallback);
+  }
   const tapped = [];
 
   function tokenHtml(t, si, ti) {
@@ -184,7 +195,8 @@ export default function (component) {
       return;
     }
     if (b && b.classList.contains('popsay')) {
-      speechSynthesis.cancel(); say(b.dataset.say, data.lang, 0.8); return;
+      const t = data.sentences[+b.dataset.s].tokens[+b.dataset.t];
+      speechSynthesis.cancel(); sayWord(t); return;
     }
     if (b && b.classList.contains('popx')) { closePop(); return; }
     if (!w) { if (!e.target.closest('.pop')) closePop(); return; }
@@ -196,14 +208,16 @@ export default function (component) {
     const pop = root.querySelector('.pop');
     const reading = ja && t.r && t.r !== t.t ? `<span class="r">${esc(t.r)}</span>` : '';
     const dict = t.d && t.d !== t.t ? `<div class="d">dictionary form: ${esc(t.d)}</div>` : '';
+    const credit = t.a ? `<div class="cr">Voice: <a href="${esc(t.a.p)}" target="_blank"
+      rel="noopener">${esc(t.a.s)}</a> · ${esc(t.a.l)}</div>` : '';
     pop.innerHTML = `<div><span class="h">${esc(t.t)}</span>${reading}</div>${dict}
-      <div class="g">${esc(t.g)}</div>
-      <div class="row"><button class="popsay" data-say="${esc(t.r || t.t)}"><span class="mi">volume_up</span></button>
+      <div class="g">${esc(t.g)}</div>${credit}
+      <div class="row"><button class="popsay" data-s="${si}" data-t="${ti}"><span class="mi">volume_up</span></button>
       <button class="popx">Close</button></div>`;
     // Opens in the flow under its sentence, so it never covers the page below.
     w.closest('.s').insertAdjacentElement('afterend', pop);
     pop.style.display = 'block';
-    say(t.r || t.t, data.lang, 0.8);
+    sayWord(t);
 
     const k = si + ':' + ti;
     if (!tapped.includes(k)) {
@@ -246,8 +260,18 @@ def _sig(obj):
 def reader(passage, lang, furigana=True, rate=0.9, key="reader"):
     """Render a passage ({"sentences": [{"tokens": [{t, r, d, g}], "en"}]}).
     Returns the tapped tokens as a list of (sentence index, token index)."""
-    data = {"sentences": passage["sentences"], "lang": lang, "furigana": furigana,
-            "rate": rate}
+    from . import audio
+    code = lang[:2]
+    sentences = []
+    for sent in passage["sentences"]:
+        toks = []
+        for t in sent["tokens"]:
+            recs = audio.find(code, t.get("t")) if t.get("g") else []
+            toks.append({**t, "a": {"u": recs[0]["url"], "s": recs[0]["speaker"],
+                                    "l": recs[0]["licence"], "p": recs[0]["page"]}}
+                        if recs else t)
+        sentences.append({**sent, "tokens": toks})
+    data = {"sentences": sentences, "lang": lang, "furigana": furigana, "rate": rate}
     data["sig"] = _sig(data)
     res = _reader(key=key, data=data, default={"tapped": []},
                   on_tapped_change=lambda: None)

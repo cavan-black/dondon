@@ -479,6 +479,11 @@ STYLE = """
   @keyframes tick {0% {transform: scale(0) rotate(-30deg);}
                    60% {transform: scale(1.35) rotate(8deg);} 100% {transform: none;}}
 
+  .credit {font-size: 0.72rem; color: var(--muted); text-align: center;
+            margin: -0.2rem 0 0.6rem; line-height: 1.5;}
+  .credit a {color: var(--muted); text-decoration: underline;
+             text-decoration-color: rgba(141,148,168,0.4);}
+
   /* ---- controls ---- */
   .stButton > button, .stFormSubmitButton > button {
       height: 3.3rem; font-size: 1.0rem; font-weight: 600; border-radius: 14px;
@@ -680,27 +685,49 @@ def task(key, icon, name, sub, state, page, frac=None, done=False, nxt=False):
         st.page_link(page, label=name)
 
 
-def speak(text, lang="ja-JP", label="", rate=0.9, icon="volume_up"):
-    """A button that reads `text` aloud with the device's own voice for `lang`."""
+def speak(text, lang="ja-JP", label="", rate=0.9, icon="volume_up", voice=None):
+    """A button that says `text`: a native speaker's recording when `voice` has one
+    (hub/audio.py; each tap moves to the next speaker, and a slow button slows the
+    recording without lowering it), otherwise the device's own voice for `lang`. If
+    a recording can't load, the device's voice takes over."""
     payload = json.dumps(text)
-    # An iframe can't see the page's fonts, so it fetches the two icons it may show.
+    urls = json.dumps([r["url"] for r in (voice or [])])
+    if voice and icon == "volume_up":
+        icon = "record_voice_over"
+    # An iframe can't see the page's fonts, so it fetches the icons it may show
+    # (icon_names must be in alphabetical order).
     st.iframe(f"""
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=slow_motion_video,volume_up&display=block">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=record_voice_over,slow_motion_video,volume_up&display=block">
       <style>html,body{{margin:0;overflow:hidden;background:transparent}}
         button{{display:flex;align-items:center;justify-content:center;gap:6px}}
+        button.on{{border-color:#8b9dff !important;color:#8b9dff !important}}
         .mi{{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;
              font-feature-settings:'liga';-webkit-font-smoothing:antialiased}}</style>
       <button id="b" style="width:100%;height:40px;border-radius:12px;
         border:1px solid #252938;background:#13151c;color:#eceef5;font-size:15px;
-        font-family:Inter,-apple-system,sans-serif;font-weight:500;cursor:pointer"
+        font-family:Inter,-apple-system,sans-serif;font-weight:500;cursor:pointer;
+        transition:border-color .2s,color .2s"
         ><span class="mi">{icon}</span>{html.escape(label)}</button>
       <script>
-        document.getElementById('b').onclick = () => {{
+        const b = document.getElementById('b'), urls = {urls};
+        let n = 0, playing = null;
+        function tts() {{
           const u = new SpeechSynthesisUtterance({payload});
           u.lang = '{lang}'; u.rate = {rate};
           const v = speechSynthesis.getVoices().find(v => v.lang.startsWith('{lang[:2]}'));
           if (v) u.voice = v;
           speechSynthesis.cancel(); speechSynthesis.speak(u);
+        }}
+        b.onclick = () => {{
+          if (!urls.length) return tts();
+          if (playing) playing.pause();
+          const a = new Audio(urls[n++ % urls.length]);
+          a.playbackRate = {rate} < 0.7 ? 0.7 : 1; a.preservesPitch = true;
+          a.onplay = () => b.classList.add('on');
+          a.onended = a.onpause = () => b.classList.remove('on');
+          a.onerror = tts;
+          playing = a;
+          a.play().catch(tts);
         }};
       </script>""", height=46)
 

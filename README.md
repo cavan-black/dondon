@@ -123,6 +123,29 @@ CC BY-SA 4.0 licence and credits its article. Text you paste in yourself is glos
 word by word and never stored. Invited learners can make 6 new passages a day; the
 library is unlimited.
 
+## Native voices
+
+Words are spoken by real people where possible: recordings by native speakers from
+[Lingua Libre](https://lingualibre.org), on Wikimedia Commons. About two thirds of
+the Japanese words in use here have one, and nearly all the Spanish. A speaker
+button with a person on it plays a recording; tap again for the next speaker when
+there are several. The slow button slows the recording without lowering the voice.
+Anything without a recording (conjugated forms, whole sentences) uses the phone's
+own voice. Tapping a word while reading uses a recording too, when there's one of
+exactly that form.
+
+The recordings are CC0, CC BY or CC BY-SA, and each one is credited to its speaker,
+with a link, wherever it plays. Nothing is copied into this repo: `data/audio/` lists
+links and credits, and the phone plays the files from Wikimedia. Matching is strict,
+because a wrong recording teaches the wrong sound: a Japanese word in kanji only
+takes a recording of exactly that spelling, since kana spellings collide across
+homophones with different pitch accent (箸 and 橋 are both はし). Refresh the lists
+after generating decks:
+
+```
+python tools/fetch_audio.py ja es
+```
+
 ## Speaking
 
 The speaker buttons use the phone's own text-to-speech, so there are no audio files and no

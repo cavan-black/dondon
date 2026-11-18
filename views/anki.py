@@ -11,14 +11,15 @@ GRADING IS BINARY, the way Migaku does it: you either got it or you didn't. AGAI
 Anki's ease 1, GOT IT sends 3 (Good); Hard and Easy are never emitted. If you want the
 full scale for a session, do it on the desktop — the collection is the same one.
 
-The deck's audio is not published (see export_due.py). The speaker button reads the word
-and sentence with the phone's own Japanese voice instead.
+The deck's audio is not published (see export_due.py). Instead the word plays a
+native speaker's recording where Lingua Libre has one (hub/audio.py), and the phone's
+own Japanese voice reads anything else.
 """
 import json, os, time
 
 import streamlit as st
 
-from hub import session, store, ui
+from hub import audio, session, store, ui
 
 DUE = os.path.join(store.ROOT, "data", "due.json")
 SAVE_EVERY = 10          # answers between pushes; a crash costs at most this many
@@ -136,12 +137,15 @@ else:
         back.append(f'<div class="sent-en">{card["sentence_meaning"]}</div>')
     ui.card("".join(back))
 
+    voice = audio.find("ja", card["word"])
     s1, s2 = st.columns(2)
     with s1:
-        ui.speak(card["reading"] or card["word"], label="word")
+        ui.speak(card["reading"] or card["word"], label="word", voice=voice)
     if card["sentence"]:
         with s2:
             ui.speak(card["sentence"], label="sentence")
+    if voice:
+        st.markdown(audio.credit(voice, card["word"]), unsafe_allow_html=True)
 
     with st.container(key="graders"):
         for col, (label, val) in zip(st.columns(2), RATINGS):
