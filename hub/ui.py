@@ -15,33 +15,9 @@ MARK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
 
 STYLE = """
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
 
-  :root {
-    --bg: #0b0c11;
-    --surface: #13151c;
-    --raised: #1a1d27;
-    --line: #252938;
-    --track: #222636;
-    --fg: #eceef5;
-    --muted: #8d94a8;
-    --ok: #3ecf8e;
-    --no: #f0566e;
-    --warn: #f2c76b;
-    --accent: #8b9dff;
-    --accent-soft: rgba(139,157,255,0.14);
-    --ok-soft: rgba(62,207,142,0.14);
-    --accent-2: #b39bff;
-    --spark: #ff9466;
-    --spark-soft: rgba(255,148,102,0.14);
-    /* chart fills: the two brand hues, a step deeper so they sit in a dark panel */
-    --viz-1: #7183f2; --viz-2: #e36f3a;
-    --display: 'Bricolage Grotesque', 'Inter', 'Zen Kaku Gothic New', sans-serif;
-    --ease: cubic-bezier(0.22, 0.8, 0.22, 1);
-    /* one hue, three steps: how well a word is held */
-    --seq-1: #414a8a; --seq-2: #6a79d6; --seq-3: #aab6ff;
-    --r-lg: 20px; --r-md: 14px;
-  }
+/*TOKENS*/
 
   #MainMenu, footer {visibility: hidden;}
   /* Streamlit's header is replaced by Dondon's own bar (topbar()). */
@@ -49,7 +25,7 @@ STYLE = """
   .stApp {background: var(--bg);}
   /* Set on the root and inherited — a blanket [class*="st-"] rule would also override
      the icon font and print icon names ("_arrow_right") instead of the icons. */
-  html, body, .stApp {font-family: 'Inter', -apple-system, BlinkMacSystemFont,
+  html, body, .stApp {font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont,
                               'Segoe UI', 'Zen Kaku Gothic New', 'Hiragino Sans',
                               'Noto Sans JP', sans-serif;}
   .block-container {padding-top: 0.6rem; padding-bottom: 5rem; max-width: 560px;}
@@ -65,12 +41,17 @@ STYLE = """
 
   .card {background: var(--surface); border: 1px solid var(--line);
          border-radius: var(--r-lg); padding: 2.0rem 1.2rem; margin: 0.6rem 0 1.0rem;
-         box-shadow: 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.22);}
+         box-shadow: var(--shadow);}
   .card.tight {padding: 1.1rem 1.1rem;}
   .word {font-size: clamp(2.6rem, 14vw, 4.2rem); line-height: 1.45; text-align: center;
          color: var(--fg); font-weight: 500; letter-spacing: 0.01em;}
   .word.small {font-size: clamp(2rem, 10vw, 3rem);}
-  .word ruby rt {font-size: 0.36em; opacity: 0.7; font-weight: 400;}
+  /* Furigana sits clear of the word: the ruby is a little column, reading on top. */
+  .word ruby, .answer ruby {display: inline-flex; flex-direction: column-reverse;
+      align-items: center; vertical-align: bottom; line-height: 1.15;}
+  .word ruby rt, .answer ruby rt {display: block; font-size: 0.34em; line-height: 1;
+      margin-bottom: 0.45em; letter-spacing: 0.12em; opacity: 0.72; font-weight: 500;
+      text-align: center;}
   .reading {font-size: 1.2rem; text-align: center; color: var(--muted);
             margin-top: 0.4rem; font-weight: 400;}
   .meaning {font-size: 1.35rem; text-align: center; color: var(--fg); font-weight: 600;
@@ -81,11 +62,14 @@ STYLE = """
   .rule {height: 1px; background: var(--line); margin: 1.4rem 0 1.1rem;}
   .sent {font-size: 1.22rem; line-height: 2.0; text-align: center; color: var(--fg);
          opacity: 0.92;}
-  .sent ruby rt {font-size: 0.42em; opacity: 0.65;}
+  .sent ruby {display: inline-flex; flex-direction: column-reverse; align-items: center;
+              vertical-align: bottom; line-height: 1.2;}
+  .sent ruby rt {display: block; font-size: 0.48em; line-height: 1; opacity: 0.65;
+                 margin-bottom: 0.2em; text-align: center;}
   .sent-en {font-size: 0.92rem; text-align: center; color: var(--muted);
             margin-top: 0.5rem; line-height: 1.5;}
   .verdict {font-size: 1.05rem; font-weight: 600; text-align: center; margin: 0.2rem 0;}
-  .verdict.ok {color: #6fe0ab;} .verdict.no {color: #ff8a9b;} .verdict.mid {color: #f2c76b;}
+  .verdict.ok {color: var(--ok-text);} .verdict.no {color: var(--no-text);} .verdict.mid {color: var(--warn-text);}
   .answer {font-size: 1.8rem; text-align: center; color: var(--fg); margin-top: 0.3rem;}
   .why {font-size: 0.92rem; color: var(--muted); line-height: 1.55; margin-top: 0.8rem;}
   .chip {display: inline-block; font-size: 0.75rem; color: var(--muted);
@@ -165,15 +149,15 @@ STYLE = """
   .task .chev {flex: none; color: var(--muted); font-size: 1.2rem; line-height: 1;
                transition: transform 0.2s var(--ease), color 0.2s;}
   .task {transition: border-color 0.2s, transform 0.12s var(--ease);}
-  [class*="st-key-go_"]:hover .task {border-color: #3a4054;}
+  [class*="st-key-go_"]:hover .task {border-color: var(--hover-line);}
   [class*="st-key-go_"]:hover .chev {transform: translateX(3px); color: var(--fg);}
   [class*="st-key-go_"]:active .task {transform: scale(0.99);}
   .task.next {border-color: rgba(139,157,255,0.6); background:
               linear-gradient(0deg, var(--accent-soft), var(--accent-soft)), var(--surface);}
   .task.next .ico {background: var(--accent); border-color: transparent;}
   .task.done .name {color: var(--muted);}
-  .task.done .ico {color: #6fe0ab; font-weight: 700;}
-  .task.done .state {color: #6fe0ab; font-weight: 600;}
+  .task.done .ico {color: var(--ok-text); font-weight: 700;}
+  .task.done .state {color: var(--ok-text); font-weight: 600;}
   [class*="st-key-go_"] {position: relative; gap: 0 !important; margin-bottom: 0.45rem;}
   [class*="st-key-go_"] div[data-testid="stElementContainer"]:has(a)
       {position: absolute; inset: 0; opacity: 0; z-index: 2; margin: 0;
@@ -200,7 +184,7 @@ STYLE = """
              font-size: 0.86rem; color: var(--fg); margin-bottom: 0.35rem; gap: 0.5rem;}
   .req .top span:last-child {color: var(--muted); font-variant-numeric: tabular-nums;
                              white-space: nowrap; font-size: 0.8rem;}
-  .req .tag {font-size: 0.64rem; font-weight: 700; color: #2a1206;
+  .req .tag {font-size: 0.64rem; font-weight: 700; color: var(--on-spark);
              background: var(--spark); border-radius: 999px; padding: 0.05rem 0.45rem;
              margin-left: 0.4rem; letter-spacing: 0.03em; text-transform: uppercase;}
 
@@ -215,7 +199,7 @@ STYLE = """
               display: grid; place-items: center; font-size: 0.72rem; font-weight: 700;
               border: 2px solid var(--track); color: var(--muted); background: var(--bg);
               position: relative; z-index: 1; box-sizing: border-box;}
-  .path .done .dot {background: var(--ok); border-color: var(--ok); color: #062014;}
+  .path .done .dot {background: var(--ok); border-color: var(--ok); color: var(--on-ok);}
   .path .here .dot {border-color: var(--accent); color: var(--accent);
                     box-shadow: 0 0 0 4px var(--accent-soft);}
   .path .name {font-weight: 650; color: var(--fg); font-size: 0.95rem;}
@@ -264,8 +248,8 @@ STYLE = """
   .stage .no {flex: none; width: 1.5rem; height: 1.5rem; border-radius: 50%;
               display: grid; place-items: center; font-size: 0.7rem; font-weight: 700;
               background: var(--track); color: var(--muted);}
-  .stage.done .no {background: var(--ok); color: #062014;}
-  .stage.current .no {background: var(--accent); color: #0b1020;}
+  .stage.done .no {background: var(--ok); color: var(--on-ok);}
+  .stage.current .no {background: var(--accent); color: var(--on-accent);}
   .stage .body {flex: 1; min-width: 0;}
   .stage .name {font-size: 0.88rem; color: var(--fg); font-weight: 550;}
   .stage.locked .name {color: var(--muted);}
@@ -399,17 +383,17 @@ STYLE = """
        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;}
   .mi.fill {font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;}
   .task .ico .mi {font-size: 1.35rem; vertical-align: 0; color: var(--fg);}
-  .task.next .ico .mi {color: #0b1020;}
-  .task.done .ico .mi {color: #6fe0ab;}
+  .task.next .ico .mi {color: var(--on-accent);}
+  .task.done .ico .mi {color: var(--ok-text);}
   .week .streak .mi {color: var(--spark); font-size: 1.15rem;}
   .word .mi {font-size: 1em; color: var(--accent);}
 
   /* ---- the top bar: home, Today, Progress, Practice, and you ---- */
   .st-key-topbar {position: sticky; top: 0; z-index: 50; margin: 0 -1rem 0.4rem;
                   width: calc(100% + 2rem) !important; box-sizing: border-box;
-                  padding: 0.55rem 1rem; background: rgba(11,12,17,0.82);
+                  padding: 0.55rem 1rem; background: var(--bar-bg);
                   backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-                  border-bottom: 1px solid rgba(37,41,56,0.7);
+                  border-bottom: 1px solid var(--bar-line);
                   animation: none !important;}
   .st-key-topbar, .st-key-topbar > div {flex-wrap: nowrap !important; gap: 0.25rem !important;}
   .st-key-topbar a[data-testid="stPageLink-NavLink"] {padding: 0.3rem 0.55rem;
@@ -436,10 +420,10 @@ STYLE = """
   .st-key-go_home:hover .brand .mark i:nth-child(2) {animation: beat 0.5s var(--ease);}
   /* the profile button: your initial in a ring */
   .st-key-me .stPopover button {width: 2.3rem; height: 2.3rem; min-height: 0;
-      padding: 0; border-radius: 50%; color: #0b1020; font-family: var(--display);
+      padding: 0; border-radius: 50%; color: var(--on-accent); font-family: var(--display);
       font-weight: 800; font-size: 1rem;
       background: linear-gradient(135deg, var(--accent), var(--spark));}
-  .st-key-me .stPopover button:hover {color: #0b1020; filter: brightness(1.08);
+  .st-key-me .stPopover button:hover {color: var(--on-accent); filter: brightness(1.08);
       background: linear-gradient(135deg, var(--accent), var(--spark));}
   .st-key-me .stPopover button [data-testid="stIconMaterial"] {display: none;}
   .who {padding: 0.2rem 0.1rem 0.6rem; border-bottom: 1px solid var(--line);
@@ -459,6 +443,8 @@ STYLE = """
     [class*="st-key-nav_"]:not([class*="practice"]) a[data-testid="stPageLink-NavLink"]
         {padding: 0.3rem 0.6rem;}
   }
+
+  .st-key-theme_sync {position: absolute; height: 0; overflow: hidden; margin: 0;}
 
   /* ---- a right answer: the card flies off, the next slides in ---- */
   .swap {position: relative;}
@@ -490,33 +476,97 @@ STYLE = """
       border: 1px solid var(--line); background: var(--raised); color: var(--fg);
       transition: transform 0.12s var(--ease), filter 0.15s, border-color 0.15s;}
   .stButton > button:active, .stFormSubmitButton > button:active {transform: scale(0.98);}
-  .stButton > button:hover {border-color: #3a4054; color: var(--fg);}
+  /* Soft caps: small, spaced capitals. Buttons whose label is content (a meaning, a
+     kana, a title) keep their own case. */
+  .stButton > button p, .stFormSubmitButton > button p {text-transform: uppercase;
+      letter-spacing: 0.08em; font-size: 0.82rem; font-weight: 700;}
+  :is(.st-key-pl_opts, .st-key-b_opts, .st-key-b_syl, [class*="st-key-lib_"])
+      .stButton > button p {text-transform: none; letter-spacing: normal;
+      font-size: inherit; font-weight: inherit;}
+  .st-key-b_opts .stButton > button p {font-size: 1.9rem; font-weight: 500;}
+  .st-key-b_syl .stButton > button p {font-size: 1.3rem;}
+  .stButton > button:hover {border-color: var(--hover-line); color: var(--fg);}
   .stButton > button:focus {box-shadow: none; color: var(--fg);}
   .stButton > button[data-testid^="stBaseButton-primary"],
   .stFormSubmitButton > button[data-testid^="stBaseButton-primary"] {
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      border-color: transparent; color: #0b1020; font-weight: 700;
+      border-color: transparent; color: var(--on-accent); font-weight: 700;
       box-shadow: 0 6px 20px rgba(139,157,255,0.22);}
   .stButton > button[data-testid^="stBaseButton-primary"]:hover,
   .stButton > button[data-testid^="stBaseButton-primary"]:focus,
   .stFormSubmitButton > button[data-testid^="stBaseButton-primary"]:hover {
-      color: #0b1020; filter: brightness(1.06);}
+      color: var(--on-accent); filter: brightness(1.06);}
   .stTextInput input {font-size: 1.4rem; height: 3.2rem; text-align: center;}
   div[data-testid="InputInstructions"] {display: none;}
 
   /* left/right grading pairs: wrap them in st.container(key="graders") */
   .st-key-graders div[data-testid="stColumn"]:nth-of-type(1) .stButton > button
-    {background: rgba(240,86,110,0.12); border-color: rgba(240,86,110,0.4); color: #ff8a9b;}
+    {background: rgba(240,86,110,0.12); border-color: rgba(240,86,110,0.4); color: var(--no-text);}
   .st-key-graders div[data-testid="stColumn"]:nth-of-type(2) .stButton > button
-    {background: rgba(62,207,142,0.12); border-color: rgba(62,207,142,0.4); color: #6fe0ab;}
+    {background: rgba(62,207,142,0.12); border-color: rgba(62,207,142,0.4); color: var(--ok-text);}
 
   div[data-testid="stMetricValue"] {font-size: 1.6rem;}
 </style>
 """
 
 
+# Two palettes with the same roles. Dark is the original; light keeps the brand
+# hues but deepens them so they hold contrast on white.
+TOKENS = {
+    "dark": {
+        "bg": "#0b0c11", "surface": "#13151c", "raised": "#1a1d27", "line": "#252938",
+        "track": "#222636", "fg": "#eceef5", "muted": "#8d94a8",
+        "ok": "#3ecf8e", "no": "#f0566e", "warn": "#f2c76b",
+        "ok-text": "#6fe0ab", "no-text": "#ff8a9b", "warn-text": "#f2c76b",
+        "accent": "#8b9dff", "accent-2": "#b39bff", "spark": "#ff9466",
+        "accent-soft": "rgba(139,157,255,0.14)", "ok-soft": "rgba(62,207,142,0.14)",
+        "spark-soft": "rgba(255,148,102,0.14)",
+        "on-accent": "#0b1020", "on-ok": "#062014", "on-spark": "#2a1206", "hover-line": "#3a4054",
+        "bar-bg": "rgba(11,12,17,0.82)", "bar-line": "rgba(37,41,56,0.7)",
+        "shadow": "0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.22)",
+        "viz-1": "#7183f2", "viz-2": "#e36f3a",
+        "seq-1": "#414a8a", "seq-2": "#6a79d6", "seq-3": "#aab6ff",
+    },
+    "light": {
+        "bg": "#f5f6fa", "surface": "#ffffff", "raised": "#f0f2f8", "line": "#e2e5ee",
+        "track": "#e7eaf2", "fg": "#151a2b", "muted": "#5f6782",
+        "ok": "#1f9d63", "no": "#d9394f", "warn": "#c98a12",
+        "ok-text": "#16804f", "no-text": "#c42c43", "warn-text": "#9a6a00",
+        "accent": "#5468f0", "accent-2": "#8a63ee", "spark": "#ef6c31",
+        "accent-soft": "rgba(84,104,240,0.10)", "ok-soft": "rgba(31,157,99,0.10)",
+        "spark-soft": "rgba(239,108,49,0.10)",
+        "on-accent": "#ffffff", "on-ok": "#ffffff", "on-spark": "#ffffff", "hover-line": "#c9cee0",
+        "bar-bg": "rgba(245,246,250,0.85)", "bar-line": "rgba(226,229,238,0.9)",
+        "shadow": "0 1px 2px rgba(21,26,43,0.06), 0 8px 24px rgba(21,26,43,0.07)",
+        "viz-1": "#5468f0", "viz-2": "#e0682f",
+        "seq-1": "#c4cafa", "seq-2": "#8796f4", "seq-3": "#4152d6",
+    },
+}
+FIXED = """
+    --display: 'Plus Jakarta Sans', 'Zen Kaku Gothic New', sans-serif;
+    --ease: cubic-bezier(0.22, 0.8, 0.22, 1);
+    --r-lg: 20px; --r-md: 14px;"""
+
+
+def mode():
+    """"light" or "dark": whichever theme the viewer's browser is showing."""
+    try:
+        kind = st.context.theme.type
+    except Exception:
+        kind = None
+    return kind if kind in TOKENS else "dark"
+
+
+def palette():
+    """The current palette, for the pieces drawn in their own frame (which can't
+    see the page's CSS variables)."""
+    return TOKENS[mode()]
+
+
 def setup():
-    st.markdown(STYLE, unsafe_allow_html=True)
+    t = palette()
+    root = "  :root {" + "".join(f"\n    --{k}: {v};" for k, v in t.items()) + FIXED + "\n  }"
+    st.markdown(STYLE.replace("/*TOKENS*/", root), unsafe_allow_html=True)
     st.logo(MARK, size="large")
 
 
@@ -619,6 +669,7 @@ def topbar(pages, current):
     Today, Progress, a Practice menu with every exercise, and the profile menu at
     the top right."""
     from . import session
+    sync_theme(pages, current)
     here = next((k for k, p in pages.items() if p.url_path == current.url_path), "today")
     with st.container(key="topbar", horizontal=True, vertical_alignment="center",
                       gap="small"):
@@ -647,6 +698,45 @@ def topbar(pages, current):
                 profile_menu(pages)
 
 
+def appearance():
+    """"System", "Light" or "Dark": the learner's choice, kept with their settings
+    so it follows them to every device. System follows the phone."""
+    from . import session
+    look = session.settings().get("appearance", "System")
+    return look if look in ("System", "Light", "Dark") else "System"
+
+
+def sync_theme(pages, current):
+    """Streamlit remembers the theme in the browser, per page address, as "System",
+    "Light" or "Dark". Make every address hold the learner's choice, and reload once
+    if the page on screen didn't, so Streamlit's own widgets switch too."""
+    want = json.dumps(json.dumps(appearance()))
+    paths = json.dumps(sorted({p.url_path for p in pages.values()}))
+    here = json.dumps(current.url_path)
+    with st.container(key="theme_sync"):
+        st.iframe(f"""<script>
+          const w = window.parent, ls = w.localStorage, want = {want};
+          const here = {here}, path = w.location.pathname;
+          // The app may live under a prefix (Community Cloud serves it at /~/+/).
+          const base = here && path.endsWith('/' + here)
+              ? path.slice(0, -here.length) : path.replace(/[^/]*$/, '');
+          let stale = false;
+          for (const p of [''].concat({paths})) {{
+            const key = 'stActiveTheme-' + base + p + '-v2';
+            if (ls.getItem(key) !== want) {{
+              if (base + p === path || (p === '' && base === path)) stale = true;
+              ls.setItem(key, want);
+            }}
+          }}
+          const mine = 'stActiveTheme-' + path + '-v2';
+          if (ls.getItem(mine) !== want) {{ ls.setItem(mine, want); stale = true; }}
+          if (stale && !w.sessionStorage.getItem('dd-theme-' + want)) {{
+            w.sessionStorage.setItem('dd-theme-' + want, '1');
+            w.location.reload();
+          }}
+        </script>""", height=1)
+
+
 def profile_menu(pages):
     from . import langs, session, stats
     ss = st.session_state
@@ -661,6 +751,16 @@ def profile_menu(pages):
                 f'{esc(s["level"].name)}</div></div>', unsafe_allow_html=True)
     for k in ("account", "level", "progress"):
         st.page_link(pages[k], label=pages[k].title, icon=pages[k].icon)
+    looks = {"System": ":material/contrast:", "Light": ":material/light_mode:",
+             "Dark": ":material/dark_mode:"}
+    want = st.segmented_control(
+        "Appearance", list(looks), default=appearance(),
+        format_func=lambda k: f"{looks[k]} {'Auto' if k == 'System' else k}",
+        key="me_look", width="stretch")
+    if want and want != appearance():
+        session.settings()["appearance"] = want
+        session.save_settings()
+        st.rerun()
     try:
         google = "auth" in st.secrets and st.user.is_logged_in
     except Exception:
@@ -692,22 +792,26 @@ def speak(text, lang="ja-JP", label="", rate=0.9, icon="volume_up", voice=None):
     a recording can't load, the device's voice takes over."""
     payload = json.dumps(text)
     urls = json.dumps([r["url"] for r in (voice or [])])
+    c = palette()
     if voice and icon == "volume_up":
         icon = "record_voice_over"
     # An iframe can't see the page's fonts, so it fetches the icons it may show
     # (icon_names must be in alphabetical order).
     st.iframe(f"""
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=record_voice_over,slow_motion_video,volume_up&display=block">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&display=swap">
       <style>html,body{{margin:0;overflow:hidden;background:transparent}}
         button{{display:flex;align-items:center;justify-content:center;gap:6px}}
-        button.on{{border-color:#8b9dff !important;color:#8b9dff !important}}
+        button.on{{border-color:{c["accent"]} !important;color:{c["accent"]} !important}}
+        .t{{text-transform:uppercase;letter-spacing:.08em}}
         .mi{{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;
              font-feature-settings:'liga';-webkit-font-smoothing:antialiased}}</style>
       <button id="b" style="width:100%;height:40px;border-radius:12px;
-        border:1px solid #252938;background:#13151c;color:#eceef5;font-size:15px;
-        font-family:Inter,-apple-system,sans-serif;font-weight:500;cursor:pointer;
+        border:1px solid {c["line"]};background:{c["surface"]};color:{c["fg"]};
+        font-size:12.5px;font-family:'Plus Jakarta Sans',-apple-system,sans-serif;
+        font-weight:700;cursor:pointer;
         transition:border-color .2s,color .2s"
-        ><span class="mi">{icon}</span>{html.escape(label)}</button>
+        ><span class="mi">{icon}</span><span class="t">{html.escape(label)}</span></button>
       <script>
         const b = document.getElementById('b'), urls = {urls};
         let n = 0, playing = null;

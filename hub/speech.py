@@ -81,5 +81,5 @@ def diff_html(lang, target, heard):
     for i, u in enumerate(shown):
         u = html.escape(u)
         out.append(u if i in hit else
-                   f'<span style="color:#ff8a9b;text-decoration:underline wavy">{u}</span>')
+                   f'<span style="color:var(--no-text);text-decoration:underline wavy">{u}</span>')
     return sep.join(out)

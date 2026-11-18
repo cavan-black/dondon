@@ -17,23 +17,24 @@ import hashlib, json
 
 import streamlit as st
 
+# The components sit in the page itself, so they take the page's theme variables
+# (hub/ui.py TOKENS); only names that differ are mapped here.
 _COLORS = """
-  --bg: #13151c; --line: #252938; --fg: #eceef5; --muted: #8d94a8;
-  --accent: #8b9dff; --ok: #6fe0ab; --no: #ff8a9b;
+  --bg: var(--surface); --ok: var(--ok-text); --no: var(--no-text);
 """
 
 # --------------------------------------------------------------------- reader
 
 _READER_CSS = """
 .rd {%s color: var(--fg);
-     font-family: 'Inter', -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif;}
+     font-family: 'Plus Jakarta Sans', -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif;}
 .rd .mi {font-family: 'Material Symbols Rounded'; font-weight: 400;
      font-style: normal; font-size: 1.25em; line-height: 1; display: inline-block;
      vertical-align: -0.22em; font-feature-settings: 'liga'; text-transform: none;
      -webkit-font-smoothing: antialiased;}
 .rd .bar {display: flex; gap: 0.5rem; margin-bottom: 0.6rem;}
 .rd .bar button {flex: 1;}
-.rd button {background: #1a1d27; color: var(--fg); border: 1px solid var(--line);
+.rd button {background: var(--raised); color: var(--fg); border: 1px solid var(--line);
             border-radius: 12px; padding: 0.55rem 0.7rem; font-size: 0.95rem;
             cursor: pointer; font-family: inherit;}
 .rd button.on {border-color: var(--accent); color: var(--accent);}
@@ -52,7 +53,7 @@ _READER_CSS = """
 .rd .en {display: none; color: var(--muted); font-size: 0.95rem; line-height: 1.5;
          margin-top: 0.35rem;}
 .rd .s.show .en {display: block;}
-.rd .pop {background: #1d2130; border: 1px solid var(--accent); border-radius: 14px;
+.rd .pop {background: var(--raised); border: 1px solid var(--accent); border-radius: 14px;
           padding: 0.8rem 1rem; margin: -0.2rem 0 0.6rem; display: none;}
 .rd .pop .h {font-size: 1.6rem; font-weight: 600;}
 .rd .pop .r {color: var(--muted); font-size: 1rem; margin-left: 0.5rem;}
@@ -285,11 +286,13 @@ def reader(passage, lang, furigana=True, rate=0.9, key="reader"):
 # ------------------------------------------------------------------------ mic
 
 _MIC_CSS = """
-.mic {%s font-family: 'Inter', -apple-system, sans-serif; color: var(--fg);}
+.mic {%s font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; color: var(--fg);}
 .mic .mi {font-family: 'Material Symbols Rounded'; font-weight: 400;
      font-style: normal; font-size: 1.25em; line-height: 1; display: inline-block;
      vertical-align: -0.22em; font-feature-settings: 'liga'; text-transform: none;
      -webkit-font-smoothing: antialiased;}
+.mic button .t {text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.85rem;
+               font-weight: 700;}
 .mic button {width: 100%%; height: 3.6rem; border-radius: 14px; font-size: 1.1rem;
              font-weight: 600; cursor: pointer; font-family: inherit;
              background: rgba(139,157,255,0.12); border: 1px solid rgba(139,157,255,0.5);
@@ -317,7 +320,7 @@ export default function (component) {
       open the app in Chrome or Safari to practise speaking.</div>`;
     return;
   }
-  const idle = `<span class="mi">mic</span> ${data.label}`;
+  const idle = `<span class="mi">mic</span> <span class="t">${data.label}</span>`;
   root.innerHTML = `<button>${idle}</button><div class="live-text"></div>`;
   const btn = root.querySelector('button'), live = root.querySelector('.live-text');
   let rec = null;
@@ -349,7 +352,7 @@ export default function (component) {
       btn.classList.remove('live'); btn.innerHTML = idle;
       if (finalText) setTriggerValue('heard', {text: finalText, alts: alts, at: Date.now()});
     };
-    btn.classList.add('live'); btn.innerHTML = '<span class="mi">graphic_eq</span> Listening… tap to stop';
+    btn.classList.add('live'); btn.innerHTML = '<span class="mi">graphic_eq</span> <span class="t">Listening… tap to stop</span>';
     live.textContent = '';
     rec.start();
   };

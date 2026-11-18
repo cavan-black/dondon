@@ -1,9 +1,23 @@
 [theme]
+font = "Plus Jakarta Sans:https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+headingFont = "Plus Jakarta Sans"
+baseRadius = "14px"
+
+[theme.light]
+base = "light"
+primaryColor = "#5468f0"
+backgroundColor = "#f5f6fa"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#151a2b"
+borderColor = "#e2e5ee"
+
+[theme.dark]
 base = "dark"
 primaryColor = "#8b9dff"
 backgroundColor = "#0b0c11"
 secondaryBackgroundColor = "#13151c"
 textColor = "#eceef5"
+borderColor = "#252938"
 
 [client]
 toolbarMode = "minimal"

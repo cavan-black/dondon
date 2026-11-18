@@ -56,13 +56,20 @@ forward. It can be retaken from the profile menu or Progress.
 
 ## The look
 
-The mark is two beats, the second bigger: どん、どん. Indigo (#8b9dff) is the
-working colour for progress, links and buttons; persimmon (#ff9466) is kept for
-what matters most on a screen, such as the forecast and the half to focus on. Green,
-red and amber only ever mean right, wrong and nearly. Headings and numbers are set in
-Bricolage Grotesque, text in Inter, Japanese in Zen Kaku Gothic New. Everything lives
-in `hub/ui.py`; the mark is `assets/mark.svg`. Icons are Material Symbols Rounded,
-the set Streamlit's own widgets use; there are no emoji in the interface.
+The mark is two beats, the second bigger: どん、どん. Indigo is the working colour
+for progress, links and buttons; persimmon is kept for what matters most on a
+screen, such as the forecast and the half to focus on. Green, red and amber only
+ever mean right, wrong and nearly. Everything is set in Plus Jakarta Sans, and
+Japanese in Zen Kaku Gothic New. Buttons are in soft capitals; ones whose label is
+content (a meaning to pick, a kana, a title) keep their own case.
+
+There's a light and a dark theme with the same roles. Dondon follows the phone's
+setting; Appearance in the profile menu can pin it to Light or Dark instead, and
+that choice is saved with your settings, so it follows you to every device. The
+palettes, fonts and motion all live in `hub/ui.py`, with the theme colours for
+Streamlit's own widgets in `.streamlit/config.toml`; the mark is `assets/mark.svg`.
+Icons are Material Symbols Rounded, the set Streamlit's own widgets use; there are
+no emoji in the interface.
 
 Things animate once as they arrive (panels rise, bars and rings fill to their
 value) and then hold still. A right answer swooshes: the card lights green and flies

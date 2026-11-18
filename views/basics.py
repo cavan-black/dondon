@@ -51,17 +51,18 @@ def chart(unit):
     wide = any(len(i.text) > 3 for i in unit.items)
     rows = -(-len(tiles) // (2 if wide else 5))
     height = rows * (64 if wide else 92) + 8
+    c = ui.palette()
     st.iframe(f"""
       <style>
         html,body{{margin:0;background:transparent;font-family:-apple-system,
           'Hiragino Sans','Noto Sans JP',sans-serif;overflow:hidden}}
         .g{{display:grid;grid-template-columns:repeat({2 if wide else 5},1fr);gap:6px}}
-        .c{{background:#13151c;border:1px solid #252938;border-radius:12px;
-            color:#eceef5;text-align:center;padding:6px 2px;cursor:pointer;
+        .c{{background:{c["surface"]};border:1px solid {c["line"]};border-radius:12px;
+            color:{c["fg"]};text-align:center;padding:6px 2px;cursor:pointer;
             user-select:none}}
-        .c:active{{border-color:#8b9dff}}
+        .c:active{{border-color:{c["accent"]}}}
         .k{{font-size:{22 if wide else 30}px;line-height:1.3}}
-        .r{{font-size:12px;color:#8d94a8}}
+        .r{{font-size:12px;color:{c["muted"]}}}
       </style>
       <div class="g" id="g"></div>
       <script>
