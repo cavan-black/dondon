@@ -31,8 +31,10 @@ The content is ours: the frequency ranking only decides which words are included
 sentence is newly written.
 
 Needs ANTHROPIC_API_KEY in the environment, plus `pip install -r tools/requirements.txt`.
+Or add `--via claude-code` to run every call through the signed-in `claude` CLI, so it
+counts against your Claude plan's usage instead of API credit (no key needed).
 """
-import argparse, json, os, re, sys, unicodedata
+import argparse, json, os, re, sys, time, unicodedata
 from concurrent.futures import ThreadPoolExecutor
 from typing import List
 
@@ -216,7 +218,50 @@ def client():
     return anthropic.Anthropic()
 
 
+VIA = "api"      # or "claude-code": run each call through the `claude` CLI instead
+
+
+def ask_cli(system, content, schema, effort):
+    """One call through Claude Code in print mode, so it counts against the signed-in
+    Claude plan's usage rather than API credit. The API key is withheld from the
+    child so the CLI can't fall back to billing it.
+
+    Everything optional is switched off — tools, MCP servers, plugins, settings,
+    skills — and it runs outside the repo so no CLAUDE.md or memory loads. Left on,
+    those add ~300k tokens of context to every call."""
+    import shutil, subprocess, tempfile
+    env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
+    exe = shutil.which("claude") or "claude"
+    if exe.lower().endswith(".cmd"):       # npm's Windows shim mangles multi-line args
+        real = os.path.join(os.path.dirname(exe), "node_modules", "@anthropic-ai",
+                            "claude-code", "bin", "claude.exe")
+        exe = real if os.path.exists(real) else exe
+    cmd = [exe, "-p", "--output-format", "json",
+           "--model", MODEL, "--effort", effort, "--tools", "",
+           "--no-session-persistence", "--strict-mcp-config",
+           "--mcp-config", '{"mcpServers":{}}', "--setting-sources", "",
+           "--disable-slash-commands", "--exclude-dynamic-system-prompt-sections",
+           "--system-prompt", system,
+           "--json-schema", json.dumps(schema.model_json_schema())]
+    for attempt in range(3):
+        r = subprocess.run(cmd, input=content, capture_output=True, text=True,
+                           encoding="utf-8", env=env, timeout=900,
+                           cwd=tempfile.gettempdir())
+        try:
+            out = json.loads(r.stdout)
+            data = out.get("structured_output")
+            if data is None and isinstance(out.get("result"), str):
+                data = json.loads(out["result"])
+            return schema.model_validate(data)
+        except Exception as e:
+            err = (r.stderr or r.stdout or str(e)).strip()[-400:]
+            time.sleep(30 * (attempt + 1))        # usually a rate limit: wait it out
+    raise RuntimeError(f"claude CLI gave no usable output: {err}")
+
+
 def ask(system, content, schema, effort="medium"):
+    if VIA == "claude-code":
+        return ask_cli(system, content, schema, effort)
     r = client().beta.messages.parse(
         model=MODEL, max_tokens=16000, betas=BETAS, fallbacks="default",
         output_config={"effort": effort}, output_format=schema, system=system,
@@ -334,7 +379,11 @@ def main():
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--dry-run", action="store_true", help="plan and estimate cost only")
     ap.add_argument("--yes", action="store_true", help="actually spend API credit")
+    ap.add_argument("--via", choices=["api", "claude-code"], default="api",
+                    help="claude-code: use the signed-in Claude plan through the CLI")
     a = ap.parse_args()
+    global VIA
+    VIA = a.via
 
     lo, _, hi = a.tiers.partition("-")
     tiers = list(range(int(lo), int(hi or lo) + 1))
