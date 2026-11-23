@@ -97,8 +97,6 @@ if not revealed:
 else:
     head = (ui.ruby(c["word"], c.get("reading")) if L.has_reading else ui.esc(c["word"]))
     back = [f'<div class="word">{head}</div>']
-    if L.has_reading and c.get("reading") and c["reading"] != c["word"]:
-        back.append(f'<div class="reading">{ui.esc(c["reading"])}</div>')
     back.append(f'<div class="meaning">{ui.esc(c["meaning"])}</div>')
     if c.get("pos"):
         back.append(f'<div class="sent-en">{ui.esc(c["pos"])}</div>')

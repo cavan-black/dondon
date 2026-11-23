@@ -128,7 +128,7 @@ if not ss.v_revealed:
         st.rerun()
 else:
     back = [f'<div class="word">{card["word_furigana"] or card["word"]}</div>']
-    if card["reading"]:
+    if card["reading"] and not card["word_furigana"]:   # furigana already shows it
         back.append(f'<div class="reading">{card["reading"]}</div>')
     back.append(f'<div class="meaning">{card["meaning"]}</div>')
     if card["sentence"]:

@@ -5,7 +5,7 @@ files. iOS and Android both ship Japanese voices, so every word, sentence and tu
 reply can be heard without publishing anyone's recordings — the reason the deck audio
 was pulled from this repo does not apply to audio the phone synthesises itself.
 """
-import html, json, os
+import html, json, os, re
 
 import streamlit as st
 
@@ -25,9 +25,9 @@ STYLE = """
   .stApp {background: var(--bg);}
   /* Set on the root and inherited — a blanket [class*="st-"] rule would also override
      the icon font and print icon names ("_arrow_right") instead of the icons. */
-  html, body, .stApp {font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont,
-                              'Segoe UI', 'Zen Kaku Gothic New', 'Hiragino Sans',
-                              'Noto Sans JP', sans-serif;}
+  html, body, .stApp {font-family: 'Plus Jakarta Sans', 'Zen Kaku Gothic New',
+                              -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                              'Hiragino Sans', 'Noto Sans JP', sans-serif;}
   .block-container {padding-top: 0.6rem; padding-bottom: 5rem; max-width: 560px;}
 
   div[data-testid="stProgressBarTrack"] {background: var(--track); height: 4px;}
@@ -43,29 +43,34 @@ STYLE = """
          border-radius: var(--r-lg); padding: 2.0rem 1.2rem; margin: 0.6rem 0 1.0rem;
          box-shadow: var(--shadow);}
   .card.tight {padding: 1.1rem 1.1rem;}
+  .word, .sent, .reading, .answer, .target .jp {font-family: var(--jp);}
   .word {font-size: clamp(2.6rem, 14vw, 4.2rem); line-height: 1.45; text-align: center;
-         color: var(--fg); font-weight: 500; letter-spacing: 0.01em;}
+         color: var(--fg); font-weight: 500; letter-spacing: 0.04em;}
   .word.small {font-size: clamp(2rem, 10vw, 3rem);}
-  /* Furigana sits clear of the word: the ruby is a little column, reading on top. */
-  .word ruby, .answer ruby {display: inline-flex; flex-direction: column-reverse;
-      align-items: center; vertical-align: bottom; line-height: 1.15;}
-  .word ruby rt, .answer ruby rt {display: block; font-size: 0.34em; line-height: 1;
-      margin-bottom: 0.45em; letter-spacing: 0.12em; opacity: 0.72; font-weight: 500;
-      text-align: center;}
+  /* Furigana: the kanji stay on the text line (an inline-block's baseline is its
+     text), and the reading floats above them, centred, with room to breathe. */
+  .word ruby, .answer ruby, .sent ruby {display: inline-block; position: relative;
+      ruby-position: over;}
+  .word ruby rt, .answer ruby rt, .sent ruby rt {position: absolute; left: 50%;
+      bottom: 100%; transform: translateX(-50%); white-space: nowrap; line-height: 1;
+      text-align: center; font-weight: 500;}
+  .word ruby rt, .answer ruby rt {font-size: 0.3em; margin-bottom: 0.05em;
+      letter-spacing: 0.14em; opacity: 0.7;}
+  .word:has(ruby) {padding-top: 0.35em;}
   .reading {font-size: 1.2rem; text-align: center; color: var(--muted);
             margin-top: 0.4rem; font-weight: 400;}
-  .meaning {font-size: 1.35rem; text-align: center; color: var(--fg); font-weight: 600;
-            margin-top: 0.8rem; line-height: 1.4;}
+  .meaning {font-family: var(--display); font-size: 1.4rem; text-align: center;
+            color: var(--fg); font-weight: 700; margin-top: 0.6rem; line-height: 1.35;
+            letter-spacing: -0.01em;}
   .target {text-align: center; margin-top: 1.1rem;}
   .target .jp {font-size: 1.6rem; color: var(--accent); font-weight: 600;}
   .target .en {font-size: 0.9rem; color: var(--muted); margin-top: 0.1rem;}
   .rule {height: 1px; background: var(--line); margin: 1.4rem 0 1.1rem;}
-  .sent {font-size: 1.22rem; line-height: 2.0; text-align: center; color: var(--fg);
-         opacity: 0.92;}
-  .sent ruby {display: inline-flex; flex-direction: column-reverse; align-items: center;
-              vertical-align: bottom; line-height: 1.2;}
-  .sent ruby rt {display: block; font-size: 0.48em; line-height: 1; opacity: 0.65;
-                 margin-bottom: 0.2em; text-align: center;}
+  .sent {font-size: 1.25rem; line-height: 2.1; text-align: center; color: var(--fg);
+         letter-spacing: 0.02em;}
+  .sent b {color: var(--accent); font-weight: 700;}
+  .sent ruby rt {font-size: 0.5em; margin-bottom: -0.15em; opacity: 0.62;
+                 letter-spacing: 0.04em;}
   .sent-en {font-size: 0.92rem; text-align: center; color: var(--muted);
             margin-top: 0.5rem; line-height: 1.5;}
   .verdict {font-size: 1.05rem; font-weight: 600; text-align: center; margin: 0.2rem 0;}
@@ -436,7 +441,7 @@ STYLE = """
       {display: none;}
   .st-key-me .stPopover button p {margin: 0; line-height: 1; text-align: center;}
   /* the language menu: the language you're learning, in its own script */
-  .st-key-lang .stPopover button p {font-family: var(--display), var(--jp, sans-serif);}
+  .st-key-lang .stPopover button p {font-family: var(--jp);}
   .st-key-topbar > :has(.st-key-lang) {margin-left: auto !important;}
   .who {padding: 0.2rem 0.1rem 0.6rem; border-bottom: 1px solid var(--line);
         margin-bottom: 0.4rem;}
@@ -559,6 +564,8 @@ TOKENS = {
 }
 FIXED = """
     --display: 'Plus Jakarta Sans', 'Zen Kaku Gothic New', sans-serif;
+    --jp: 'Plus Jakarta Sans', 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Sans JP',
+          'Yu Gothic', sans-serif;
     --ease: cubic-bezier(0.22, 0.8, 0.22, 1);
     --r-lg: 20px; --r-md: 14px;"""
 
@@ -596,7 +603,16 @@ def icon(name, fill=False):
     return f'<span class="mi{" fill" if fill else ""}" aria-hidden="true">{name}</span>'
 
 
+_RUBY_GAP = re.compile(r"\s+(?=(?:<b>)?<ruby>)|(?<=</ruby>)\s+|(?<=</ruby></b>)\s+(?=[　-鿿])")
+
+
+def tidy_ruby(s):
+    """Remove the spaces Anki's furigana format leaves around each kanji run."""
+    return _RUBY_GAP.sub("", s or "")
+
+
 def card(inner, tight=False):
+    inner = tidy_ruby(inner)
     ss = st.session_state
     ghost = ss.pop("_swoosh", None)
     ss["_last_card"] = (inner, tight)
