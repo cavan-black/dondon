@@ -57,6 +57,11 @@ STYLE = """
   .word ruby rt, .answer ruby rt {font-size: 0.3em; margin-bottom: 0.05em;
       letter-spacing: 0.14em; opacity: 0.7;}
   .word:has(ruby) {padding-top: 0.35em;}
+  /* the base text is the sentence's own text: same size, same weight, same line */
+  .word ruby, .answer ruby, .sent ruby {font-size: inherit; font-weight: inherit;
+      vertical-align: baseline;}
+  /* Japanese sentences (the ones with furigana) a size up: kanji need the room */
+  .sent:has(ruby) {font-size: 1.45rem; line-height: 2.2;}
   .reading {font-size: 1.2rem; text-align: center; color: var(--muted);
             margin-top: 0.4rem; font-weight: 400;}
   .meaning {font-family: var(--display); font-size: 1.4rem; text-align: center;
