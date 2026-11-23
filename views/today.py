@@ -10,15 +10,6 @@ from hub.store import ROOT, now, today
 
 TARGETS = stats.TARGETS
 
-# --------------------------------------------------------------- language switch
-codes = list(langs.LANGS)
-names = {c: langs.get(c).native for c in codes}
-picked = st.segmented_control("Language", codes, format_func=names.get,
-                              default=session.lang(), label_visibility="collapsed")
-if picked and picked != session.lang():
-    session.set_lang(picked)
-    st.rerun()
-
 L = langs.get(session.lang())
 T = L.track
 email = session.email()

@@ -411,7 +411,7 @@ STYLE = """
       border: 1px solid transparent; background: transparent; font-weight: 600;
       font-size: 0.9rem; color: var(--muted); padding: 0 0.55rem;}
   .st-key-topbar .stPopover button:hover {color: var(--fg); background: var(--raised);}
-  .st-key-topbar > :has(.st-key-me) {margin-left: auto !important;}
+
   .st-key-go_home .brand {justify-content: flex-start; gap: 0.45rem;}
   .st-key-go_home .brand .mark {width: 2.1rem; height: 2.1rem; border-radius: 0.6rem;}
   .st-key-go_home .brand .wm {font-size: 1.25rem;}
@@ -425,7 +425,19 @@ STYLE = """
       background: linear-gradient(135deg, var(--accent), var(--spark));}
   .st-key-me .stPopover button:hover {color: var(--on-accent); filter: brightness(1.08);
       background: linear-gradient(135deg, var(--accent), var(--spark));}
-  .st-key-me .stPopover button [data-testid="stIconMaterial"] {display: none;}
+  .st-key-me .stPopover button [data-testid="stIconMaterial"],
+  .st-key-me .stPopover button svg {display: none;}
+  /* centre the initial: the popover keeps a slot for its chevron, so collapse it */
+  .st-key-me .stPopover button {display: flex; align-items: center; justify-content: center;
+      min-width: 2.3rem; max-width: 2.3rem; flex: none;}
+  .st-key-me .stPopover button > div {display: flex; align-items: center;
+      justify-content: center; gap: 0; margin: 0;}
+  .st-key-me .stPopover button > div > div:has([data-testid="stIconMaterial"])
+      {display: none;}
+  .st-key-me .stPopover button p {margin: 0; line-height: 1; text-align: center;}
+  /* the language menu: the language you're learning, in its own script */
+  .st-key-lang .stPopover button p {font-family: var(--display), var(--jp, sans-serif);}
+  .st-key-topbar > :has(.st-key-lang) {margin-left: auto !important;}
   .who {padding: 0.2rem 0.1rem 0.6rem; border-bottom: 1px solid var(--line);
         margin-bottom: 0.4rem;}
   .who .n {font-family: var(--display); font-weight: 800; font-size: 1.1rem;
@@ -437,6 +449,7 @@ STYLE = """
            letter-spacing: 0.08em; font-weight: 600; margin: 0.5rem 0 0.1rem 0.2rem;}
   @media (max-width: 520px) {
     .st-key-go_home .brand .wm {display: none;}
+    .st-key-lang .stPopover button p {display: none;}
     /* phones: Today and Progress as icons, so the bar fits on one line */
     [class*="st-key-nav_"]:not([class*="practice"]) a[data-testid="stPageLink-NavLink"] p
         {display: none;}
@@ -483,6 +496,8 @@ STYLE = """
   :is(.st-key-pl_opts, .st-key-b_opts, .st-key-b_syl, [class*="st-key-lib_"])
       .stButton > button p {text-transform: none; letter-spacing: normal;
       font-size: inherit; font-weight: inherit;}
+  [class*="st-key-lang_"] button p {text-transform: none; letter-spacing: normal;
+      font-size: 0.95rem; font-weight: 600;}
   .st-key-b_opts .stButton > button p {font-size: 1.9rem; font-weight: 500;}
   .st-key-b_syl .stButton > button p {font-size: 1.3rem;}
   .stButton > button:hover {border-color: var(--hover-line); color: var(--fg);}
@@ -632,7 +647,7 @@ def ring(frac, value, label, size="6.6rem"):
 def brand(big=False):
     """The lockup: the mark (two beats, rising), the name, and the name in kana."""
     return (f'<div class="brand{" big" if big else ""}"><span class="mark"><i></i><i></i>'
-            f'</span><span class="wm">dondon</span><span class="jp">どんどん</span></div>')
+            f'</span><span class="wm">Dondon</span><span class="jp">どんどん</span></div>')
 
 
 def tiles(items, two=False):
@@ -691,6 +706,19 @@ def topbar(pages, current):
                             with st.container(key=f"nav_{'here_' if k == here else ''}m_{k}"):
                                 st.page_link(pages[k], label=pages[k].title,
                                              icon=pages[k].icon)
+        with st.container(key="lang", width="content"):
+            from . import langs
+            cur = langs.get(session.lang())
+            with st.popover(cur.native, icon=":material/translate:"):
+                st.markdown('<div class="menu-h">Learning</div>', unsafe_allow_html=True)
+                for code, L in langs.LANGS.items():
+                    on = code == cur.code
+                    if st.button(f"{L.native} · {L.name}", key=f"lang_{code}",
+                                 icon=":material/check:" if on else None,
+                                 type="primary" if on else "tertiary",
+                                 use_container_width=True) and not on:
+                        session.set_lang(code)
+                        st.rerun()
         with st.container(key="me", width="content"):
             name = st.session_state.get("name") or "You"
             initial = (name if name != "Owner" else session.email())[:1].upper()
